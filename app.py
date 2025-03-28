@@ -50,6 +50,29 @@ def ilan_detay(ilan_id):
     return render_template('ilan_detay.html', ilan=ilan)
 
 @app.route('/ilan_ver', methods=['GET', 'POST'])
+
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        email = request.form['email']
+        phone = request.form.get('phone', '')
+        
+        db = get_db()
+        # Şifreyi hash'le
+        hashed_password = generate_password_hash(password)
+        
+        # Kullanıcıyı veritabanına ekle
+        user_id = db.user_ekle(username, hashed_password, email, phone)
+        
+        if user_id:
+            flash('Kayıt başarılı! Giriş yapabilirsiniz.', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash('Bu kullanıcı adı/email zaten kullanımda', 'error')
+    
+    return render_template('register.html')
+    
 def ilan_ver():
     if 'user_id' not in session:
         flash('İlan vermek için giriş yapmalısınız', 'error')
@@ -79,7 +102,7 @@ def ilan_ver():
         db = get_db()
         ilan_id = db.ilan_ekle(
             session['user_id'], baslik, aciklama, fiyat, konum, cinsiyet,
-            oda_sayisi, sigara, alkol, evcil_hayvan, ','.join(resimler)
+            oda_sayisi, sigara, alkol, evcil_hayvan, ','.join(resimler))
         
         if ilan_id:
             flash('İlan başarıyla eklendi!', 'success')

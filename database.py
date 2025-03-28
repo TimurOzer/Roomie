@@ -3,6 +3,19 @@ import os
 from werkzeug.security import generate_password_hash
 
 class Database:
+    
+    def user_ekle(self, username, password, email, phone=None):
+    try:
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            INSERT INTO users (username, password, email, phone)
+            VALUES (?, ?, ?, ?)
+        ''', (username, password, email, phone))
+        self.conn.commit()
+        return cursor.lastrowid
+    except sqlite3.IntegrityError:
+        return None
+        
     def __init__(self, db_name='ev_arkadasi.db'):
         # Veritabanı dosya yolu
         self.db_path = os.path.join(os.path.dirname(__file__), db_name)

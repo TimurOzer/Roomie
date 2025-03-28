@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="login-section">
+    <h2>Giriş Yap</h2>
+    <form method="POST" class="login-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            <label for="username">Kullanıcı Adı</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Şifre</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        
+        <button type="submit" class="btn-login">Giriş Yap</button>
+        
+        <div class="register-link">
+            Hesabınız yok mu? <a href="/register">Kayıt Olun</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
