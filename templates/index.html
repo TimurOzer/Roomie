@@ -19,13 +19,14 @@
 <section class="ilan-listesi">
     <h2>Son Eklenen İlanlar</h2>
     <div class="ilan-grid">
-        {% for ilan in ilanlar %}
-        <div class="ilan-karti" onclick="window.location.href='{{ url_for('ilan_detay', ilan_id=ilan.id) }}'">
-            {% if ilan.resimler %}
-                <div class="ilan-resim" style="background-image: url('{{ url_for('static', filename='uploads/' + ilan.resimler.split(',')[0]) }}')"></div>
-            {% else %}
-                <div class="ilan-resim no-image"></div>
-            {% endif %}
+{% for ilan in ilanlar %}
+	  <div class="ilan">
+		{% if ilan.resimler %}
+		  {% set first_image = ilan.resimler.split(',')[0] %}
+		  <img src="{{ url_for('static', filename='uploads/' + first_image) if file_exists('static/uploads/' + first_image) else url_for('static', filename='images/placeholder.jpg') }}" alt="{{ ilan.baslik }}">
+		{% else %}
+		  <img src="{{ url_for('static', filename='images/placeholder.jpg') }}" alt="Resim Yok">
+		{% endif %}
             <div class="ilan-bilgileri">
                 <h3>{{ ilan.baslik }}</h3>
                 <p class="fiyat">{{ ilan.fiyat }} TL</p>

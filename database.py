@@ -1,37 +1,28 @@
 import sqlite3
 import os
-from werkzeug.security import generate_password_hash
 
 class Database:
-    
-    def user_ekle(self, username, password, email, phone=None):
-    try:
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            INSERT INTO users (username, password, email, phone)
-            VALUES (?, ?, ?, ?)
-        ''', (username, password, email, phone))
-        self.conn.commit()
-        return cursor.lastrowid
-    except sqlite3.IntegrityError:
-        return None
-        
     def __init__(self, db_name='ev_arkadasi.db'):
-        # Veritabanı dosya yolu
         self.db_path = os.path.join(os.path.dirname(__file__), db_name)
-        
-        # Dizin yoksa oluştur
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        
-        # Veritabanı bağlantısı
         self.conn = sqlite3.connect(self.db_path)
-        self.conn.row_factory = sqlite3.Row  # Sözlük formatında sonuçlar
-        
-        # Tabloları oluştur
+        self.conn.row_factory = sqlite3.Row
         self._create_tables()
 
     def _create_tables(self):
         cursor = self.conn.cursor()
+        
+        # Kullanıcılar tablosu (yorum satırları kaldırıldı)
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            phone TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
         
         # İlanlar tablosu
         cursor.execute('''
@@ -50,18 +41,6 @@ class Database:
             tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             user_id INTEGER,
             FOREIGN KEY(user_id) REFERENCES users(id)
-        )
-        ''')
-        
-        # Kullanıcılar tablosu
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            phone TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         ''')
         
@@ -132,33 +111,27 @@ class Database:
             print("İlan detay hatası:", e)
             return None
 
-    # KULLANICI İŞLEMLERİ
+    # KULLANICI İŞLEMLERİ (TEK BİR TANE OLMALI!)
     def user_ekle(self, username, password, email, phone=None):
         try:
             cursor = self.conn.cursor()
-            hashed_pw = generate_password_hash(password)
             cursor.execute('''
                 INSERT INTO users (username, password, email, phone)
                 VALUES (?, ?, ?, ?)
-            ''', (username, hashed_pw, email, phone))
+            ''', (username, password, email, phone))
             self.conn.commit()
             return cursor.lastrowid
         except sqlite3.IntegrityError:
-            return None  # Kullanıcı adı/email zaten var
-        except sqlite3.Error as e:
-            print("Kullanıcı ekleme hatası:", e)
             return None
 
     def get_user(self, username):
         try:
             cursor = self.conn.cursor()
             cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
-            row = cursor.fetchone()
-            return dict(row) if row else None
-        except sqlite3.Error as e:
-            print("Kullanıcı getirme hatası:", e)
+            return cursor.fetchone()
+        except sqlite3.Error:
             return None
-
+            
     # DİĞER METODLAR
     def close(self):
         if hasattr(self, 'conn') and self.conn:
