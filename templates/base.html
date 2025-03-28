@@ -11,7 +11,12 @@
         <h1>Ev Arkadaşı Bul</h1>
         <nav>
             <a href="{{ url_for('index') }}">Ana Sayfa</a>
-            <a href="{{ url_for('ilan_ver') }}">İlan Ver</a>
+            {% if 'user_id' in session %}
+                <a href="{{ url_for('ilan_ver') }}">İlan Ver</a>
+                <a href="{{ url_for('logout') }}">Çıkış Yap ({{ session['username'] }})</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Giriş Yap</a>
+            {% endif %}
         </nav>
     </header>
 
