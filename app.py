@@ -57,10 +57,36 @@ def login_required(f):
 @app.route('/')
 def index():
     db = get_db()
-    # Filtreleri TAMAMEN KALDIR (test için)
-    ilanlar = db.get_ilanlar({})  # Boş dict gönder
-    print("DEBUG - İlan Sayısı:", len(ilanlar))  # Log ekle
-    return render_template('index.html', ilanlar=ilanlar)
+    filters = {}
+    
+    # Geçerli filtreleri kontrol et
+        # Mevcut filtre parametrelerini al
+    current_cinsiyet = request.args.get('cinsiyet', 'farketmez')
+    current_min_fiyat = request.args.get('min_fiyat', '')
+    current_max_fiyat = request.args.get('max_fiyat', '')
+    cinsiyet = request.args.get('cinsiyet')
+    if cinsiyet and cinsiyet.lower() != 'farketmez':
+        filters['cinsiyet'] = cinsiyet
+    
+    try:
+        if request.args.get('min_fiyat'):
+            filters['min_fiyat'] = float(request.args.get('min_fiyat'))
+        if request.args.get('max_fiyat'):
+            filters['max_fiyat'] = float(request.args.get('max_fiyat'))
+    except ValueError:
+        flash('Geçersiz fiyat aralığı', 'warning')
+    
+    # Boolean filtreler
+    for param in ['sigara', 'alkol', 'evcil_hayvan']:
+        if request.args.get(param) in ['1', 'true', 'on']:
+            filters[param] = True
+    
+    ilanlar = db.get_ilanlar(filters)
+    print("Filtreler:", filters, "Toplam ilan:", len(ilanlar))  # Debug
+    # Template'e mevcut filtre durumunu da gönder
+    return render_template('index.html', 
+                         ilanlar=ilanlar,
+                         current_filters=request.args)
 
 @app.route('/ilan/<int:ilan_id>')
 def ilan_detay(ilan_id):

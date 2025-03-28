@@ -72,24 +72,33 @@ class Database:
             
             if filters:
                 conditions = []
-                for key, value in filters.items():
-                    if key == 'min_fiyat':
+                # Cinsiyet filtresi (boş değilse ve 'farketmez' değilse)
+                if filters.get('cinsiyet') and filters['cinsiyet'].lower() != 'farketmez':
+                    conditions.append("cinsiyet = ?")
+                    params.append(filters['cinsiyet'])
+                
+                # Fiyat aralığı (sadece sayısal değerler için)
+                try:
+                    if filters.get('min_fiyat'):
                         conditions.append("fiyat >= ?")
-                        params.append(value)
-                    elif key == 'max_fiyat':
+                        params.append(float(filters['min_fiyat']))
+                    if filters.get('max_fiyat'):
                         conditions.append("fiyat <= ?")
-                        params.append(value)
-                    elif key == 'cinsiyet' and value != 'farketmez':
-                        conditions.append("cinsiyet = ?")
-                        params.append(value)
-                    elif key in ['sigara', 'alkol', 'evcil_hayvan']:
+                        params.append(float(filters['max_fiyat']))
+                except (ValueError, TypeError):
+                    pass  # Geçersiz fiyat değerlerini görmezden gel
+                
+                # Diğer filtreler (sigara, alkol, evcil_hayvan)
+                for key in ['sigara', 'alkol', 'evcil_hayvan']:
+                    if key in filters and filters[key] in [True, False, 1, 0, '1', '0']:
                         conditions.append(f"{key} = ?")
-                        params.append(1 if value else 0)
+                        params.append(1 if str(filters[key]) in ['1', 'True', True] else 0)
                 
                 if conditions:
                     query += " WHERE " + " AND ".join(conditions)
             
-            query += " ORDER BY tarih DESC"
+            query += " ORDER BY tarih DESC"  # Veya "id DESC"
+            print("DEBUG SQL:", query, params)  # Hata ayıklama için
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
         except sqlite3.Error as e:

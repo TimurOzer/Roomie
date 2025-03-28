@@ -401,3 +401,24 @@ textarea {
 .register-link a:hover {
     text-decoration: underline;
 }
+
+/* Filtre formunu daha belirgin hale getirin */
+form {
+  background: #f5f5f5;
+  padding: 15px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+select, input[type="number"] {
+  padding: 8px;
+  margin-right: 10px;
+}
+
+.active-filters .badge {
+  background: #4CAF50;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 3px;
+  margin-left: 5px;
+}

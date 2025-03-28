@@ -3,17 +3,47 @@
 {% block content %}
 <section class="search-section">
     <h2>Ev Arkadaşı Ara</h2>
-    <form class="search-form">
-        <input type="text" placeholder="Konum (Örn: İstanbul, Kadıköy)">
-        <select>
-            <option value="">Cinsiyet Seçiniz</option>
-            <option value="erkek">Erkek</option>
-            <option value="kadin">Kadın</option>
-            <option value="farketmez">Farketmez</option>
-        </select>
-        <input type="number" placeholder="Max Fiyat">
-        <button type="submit">Ara</button>
-    </form>
+<form method="get" action="{{ url_for('index') }}">
+  <!-- Cinsiyet Filtresi -->
+  <select name="cinsiyet">
+    <option value="farketmez" {% if request.args.get('cinsiyet', 'farketmez') == 'farketmez' %}selected{% endif %}>Farketmez</option>
+    <option value="Erkek" {% if request.args.get('cinsiyet') == 'Erkek' %}selected{% endif %}>Erkek</option>
+    <option value="Kadın" {% if request.args.get('cinsiyet') == 'Kadın' %}selected{% endif %}>Kadın</option>
+  </select>
+
+  <!-- Fiyat Aralığı -->
+  <input type="number" name="min_fiyat" placeholder="Min Fiyat" 
+         value="{{ request.args.get('min_fiyat', '') }}">
+  <input type="number" name="max_fiyat" placeholder="Max Fiyat"
+         value="{{ request.args.get('max_fiyat', '') }}">
+
+  <!-- Diğer Filtreler -->
+  <label>
+    <input type="checkbox" name="sigara" value="1" 
+           {% if request.args.get('sigara') == '1' %}checked{% endif %}> Sigara İçen
+  </label>
+  <label>
+    <input type="checkbox" name="alkol" value="1"
+           {% if request.args.get('alkol') == '1' %}checked{% endif %}> Alkol Kullanan
+  </label>
+  <label>
+    <input type="checkbox" name="evcil_hayvan" value="1"
+           {% if request.args.get('evcil_hayvan') == '1' %}checked{% endif %}> Evcil Hayvan
+  </label>
+
+  <button type="submit">Filtrele</button>
+  <a href="{{ url_for('index') }}">Filtreleri Temizle</a>
+</form>
+<div class="active-filters">
+  {% if request.args %}
+    <strong>Aktif Filtreler:</strong>
+    {% for key, value in request.args.items() %}
+      {% if value and key != 'page' %}
+        <span class="badge">{{ key }}: {{ value }}</span>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+</div>
 </section>
 
 <section class="ilan-listesi">
