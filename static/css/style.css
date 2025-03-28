@@ -1,0 +1,339 @@
+/* Temel Stiller */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    background-color: #f5f5f5;
+}
+
+header {
+    background-color: #4CAF50;
+    color: white;
+    padding: 1rem 0;
+    text-align: center;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    background-color: #3e8e41;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+nav a:hover {
+    background-color: #2d6a2f;
+}
+
+main {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+footer {
+    text-align: center;
+    padding: 1rem 0;
+    background-color: #333;
+    color: white;
+    margin-top: 2rem;
+}
+
+/* Flash mesajları */
+.flash {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.flash.success {
+    background-color: #dff0d8;
+    color: #3c763d;
+}
+
+.flash.error {
+    background-color: #f2dede;
+    color: #a94442;
+}
+
+/* İlan kartları */
+.ilan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.ilan-karti {
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+    cursor: pointer;
+}
+
+.ilan-karti:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.ilan-resim {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+}
+
+.no-image {
+    background-color: #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777;
+}
+
+.ilan-bilgileri {
+    padding: 1rem;
+}
+
+.ilan-bilgileri h3 {
+    margin: 0 0 0.5rem 0;
+    color: #4CAF50;
+}
+
+.fiyat {
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #333;
+    margin: 0.5rem 0;
+}
+
+.konum {
+    color: #666;
+    margin: 0.5rem 0;
+}
+
+.ozellikler {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.ozellikler span {
+    padding: 0.3rem 0.6rem;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+/* Arama formu */
+.search-section {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.search-form {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.search-form input, .search-form select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.search-form button {
+    padding: 0.5rem 1rem;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.search-form button:hover {
+    background-color: #3e8e41;
+}
+
+/* İlan verme formu */
+.ilan-verme {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.checkbox-group {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.submit-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.submit-btn:hover {
+    background-color: #3e8e41;
+}
+
+/* İlan detay sayfası */
+.ilan-detay {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.ilan-baslik {
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1rem;
+}
+
+.ilan-baslik h2 {
+    margin: 0 0 0.5rem 0;
+    color: #4CAF50;
+}
+
+.ilan-galeri {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.galeri-resim {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 4px;
+}
+
+.ilan-ozellikler {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.ozellik {
+    background-color: #f9f9f9;
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.etiket {
+    font-weight: bold;
+    display: block;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.deger {
+    display: block;
+    margin-top: 0.3rem;
+}
+
+.ilan-aciklama {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+.iletisim-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-bottom: 1rem;
+}
+
+.iletisim-btn:hover {
+    background-color: #3e8e41;
+}
+
+.iletisim-bilgileri {
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}

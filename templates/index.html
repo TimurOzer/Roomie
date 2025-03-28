@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="search-section">
+    <h2>Ev Arkadaşı Ara</h2>
+    <form class="search-form">
+        <input type="text" placeholder="Konum (Örn: İstanbul, Kadıköy)">
+        <select>
+            <option value="">Cinsiyet Seçiniz</option>
+            <option value="erkek">Erkek</option>
+            <option value="kadin">Kadın</option>
+            <option value="farketmez">Farketmez</option>
+        </select>
+        <input type="number" placeholder="Max Fiyat">
+        <button type="submit">Ara</button>
+    </form>
+</section>
+
+<section class="ilan-listesi">
+    <h2>Son Eklenen İlanlar</h2>
+    <div class="ilan-grid">
+        {% for ilan in ilanlar %}
+        <div class="ilan-karti" onclick="window.location.href='{{ url_for('ilan_detay', ilan_id=ilan.id) }}'">
+            {% if ilan.resimler %}
+                <div class="ilan-resim" style="background-image: url('{{ url_for('static', filename='uploads/' + ilan.resimler.split(',')[0]) }}')"></div>
+            {% else %}
+                <div class="ilan-resim no-image"></div>
+            {% endif %}
+            <div class="ilan-bilgileri">
+                <h3>{{ ilan.baslik }}</h3>
+                <p class="fiyat">{{ ilan.fiyat }} TL</p>
+                <p class="konum">{{ ilan.konum }}</p>
+                <div class="ozellikler">
+                    <span class="oda">{{ ilan.oda_sayisi }} + 1</span>
+                    <span class="cinsiyet">{{ ilan.cinsiyet }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

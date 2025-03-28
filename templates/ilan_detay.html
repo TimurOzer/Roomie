@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="ilan-detay">
+    <div class="ilan-baslik">
+        <h2>{{ ilan.baslik }}</h2>
+        <p class="fiyat">{{ ilan.fiyat }} TL</p>
+        <p class="konum">{{ ilan.konum }}</p>
+    </div>
+    
+    <div class="ilan-galeri">
+        {% if ilan.resimler %}
+            {% for resim in ilan.resimler %}
+                <div class="galeri-resim" style="background-image: url('{{ url_for('static', filename='uploads/' + resim) }}')"></div>
+            {% endfor %}
+        {% else %}
+            <div class="galeri-resim no-image"></div>
+        {% endif %}
+    </div>
+    
+    <div class="ilan-ozellikler">
+        <div class="ozellik">
+            <span class="etiket">Oda Sayısı:</span>
+            <span class="deger">{{ ilan.oda_sayisi }} + 1</span>
+        </div>
+        <div class="ozellik">
+            <span class="etiket">Aranan Cinsiyet:</span>
+            <span class="deger">
+                {% if ilan.cinsiyet == 'erkek' %}Erkek
+                {% elif ilan.cinsiyet == 'kadin' %}Kadın
+                {% else %}Farketmez
+                {% endif %}
+            </span>
+        </div>
+        <div class="ozellik">
+            <span class="etiket">Sigara:</span>
+            <span class="deger">{{ 'İstenmiyor' if ilan.sigara else 'Farketmez' }}</span>
+        </div>
+        <div class="ozellik">
+            <span class="etiket">Alkol:</span>
+            <span class="deger">{{ 'İstenmiyor' if ilan.alkol else 'Farketmez' }}</span>
+        </div>
+        <div class="ozellik">
+            <span class="etiket">Evcil Hayvan:</span>
+            <span class="deger">{{ 'İstenmiyor' if ilan.evcil_hayvan else 'Farketmez' }}</span>
+        </div>
+    </div>
+    
+    <div class="ilan-aciklama">
+        <h3>Açıklama</h3>
+        <p>{{ ilan.aciklama }}</p>
+    </div>
+    
+    <div class="iletisim">
+        <button class="iletisim-btn">İletişim Bilgilerini Göster</button>
+        <div class="iletisim-bilgileri" style="display: none;">
+            <p>İlan sahibi ile iletişim bilgileri burada gösterilecek.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
