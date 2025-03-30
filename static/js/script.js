@@ -37,37 +37,27 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Beğenme butonları için etkileşim
-// Beğeni butonları için AJAX
-document.querySelectorAll('.aksiyon-btn').forEach(btn => {
+// Mesaj istekleri sayfası işlemleri
+document.querySelectorAll('.istek-kabul-btn, .istek-red-btn').forEach(btn => {
     btn.addEventListener('click', function() {
-        const card = this.closest('.ilan-karti');
-        const ilanId = card.dataset.ilanId;
-        let tip = '';
+        const form = this.closest('.istek-kabul-form');
+        const istekId = form.dataset.istekId;
+        const islem = this.classList.contains('istek-kabul-btn') ? 'kabul' : 'red';
         
-        if (this.classList.contains('begenme-btn')) {
-            return; // Çarpı butonu için işlem yapma
-        } else if (this.classList.contains('cay-btn')) {
-            tip = 'cay';
-        } else if (this.classList.contains('kahve-btn')) {
-            tip = 'kahve';
-        }
-        
-        fetch('/begeni', {
+        fetch('/mesaj_istek_islem', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
             },
-            body: `ilan_id=${ilanId}&tip=${tip}`
+            body: `istek_id=${istekId}&islem=${islem}`
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Başarılı olduğunda buton rengini değiştir
-                this.style.backgroundColor = tip === 'cay' ? '#e8f5e9' : '#fff3e0';
-                this.style.fontWeight = 'bold';
+                location.reload(); // Sayfayı yenile
             } else {
-                alert('Beğeni gönderilemedi: ' + (data.error || 'Bilinmeyen hata'));
+                alert('İşlem yapılamadı: ' + (data.error || 'Bilinmeyen hata'));
             }
         })
         .catch(error => {
@@ -75,4 +65,106 @@ document.querySelectorAll('.aksiyon-btn').forEach(btn => {
             alert('Bir hata oluştu');
         });
     });
+});
+
+// Mesaj gönderme formu
+document.querySelector('.mesaj-gonder-form')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const odaId = this.dataset.odaId;
+    const mesaj = this.mesaj.value.trim();
+    
+    if (!mesaj) return;
+    
+    fetch('/mesaj_gonder', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+        },
+        body: `oda_id=${odaId}&mesaj=${encodeURIComponent(mesaj)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            this.mesaj.value = '';
+            // Mesajı ekrana ekle veya sayfayı yenile
+            location.reload(); // Basitçe sayfayı yenileyelim
+        } else {
+            alert('Mesaj gönderilemedi: ' + (data.error || 'Bilinmeyen hata'));
+        }
+    })
+    .catch(error => {
+        console.error('Hata:', error);
+        alert('Bir hata oluştu');
+    });
+});
+
+// Çay/Kahve gönderme butonları için event listener
+document.addEventListener('click', function(e) {
+    // Çay veya kahve butonuna tıklanıp tıklanmadığını kontrol et
+    if (e.target.classList.contains('cay-btn') || e.target.classList.contains('kahve-btn')) {
+        const btn = e.target;
+        const card = btn.closest('.ilan-karti');
+        
+        if (!card) {
+            console.error('İlan kartı bulunamadı');
+            return;
+        }
+        
+        const ilanId = card.dataset.ilanId;
+        const tip = btn.dataset.tip || 
+                   (btn.classList.contains('cay-btn') ? 'cay' : 'kahve');
+        
+        // CSRF token'ını güvenli şekilde al
+        const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
+                         document.querySelector('meta[name="csrf-token"]')?.content;
+        
+        if (!csrfToken) {
+            console.error('CSRF token bulunamadı');
+            alert('Güvenlik hatası: CSRF token eksik');
+            return;
+        }
+        
+        if (!ilanId) {
+            console.error('İlan ID bulunamadı');
+            return;
+        }
+        
+        console.log('Gönderiliyor:', { ilanId, tip, csrfToken });
+        
+        fetch('/begeni', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            body: `ilan_id=${ilanId}&tip=${tip}`
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Buton görünümünü güncelle
+                btn.style.backgroundColor = tip === 'cay' ? '#e8f5e9' : '#fff3e0';
+                btn.style.fontWeight = 'bold';
+                btn.disabled = true;
+                
+                // Kullanıcıya bilgi ver
+                alert(`${tip === 'cay' ? 'Çay' : 'Kahve'} gönderildi! İlan sahibi mesajınızı onayladığında bildirim alacaksınız.`);
+                
+                // İsteğe bağlı: İlan kartını gri yap
+                card.style.opacity = '0.6';
+            } else {
+                alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            alert('İşlem sırasında hata oluştu: ' + error.message);
+        });
+    }
 });

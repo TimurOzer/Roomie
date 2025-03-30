@@ -50,32 +50,31 @@
     <h2>Son Eklenen İlanlar</h2>
     <div class="ilan-grid">
         {% for ilan in ilanlar %}
-        <div class="ilan-karti">
-            <!-- Resim kısmı (350x350 boyutunda) -->
-            <div class="ilan-resim">
-                {% if ilan.resimler %}
-                    {% set first_image = ilan.resimler.split(',')[0] %}
-                    <img src="{{ url_for('static', filename='uploads/' + first_image) if file_exists('static/uploads/' + first_image) else url_for('static', filename='images/placeholder.jpg') }}" 
-                         alt="{{ ilan.baslik }}" class="ilan-resim-img">
-                {% else %}
-                    <img src="{{ url_for('static', filename='images/placeholder.jpg') }}" 
-                         alt="Resim Yok" class="ilan-resim-img">
-                {% endif %}
-            </div>
-            
-            <!-- Konum ve fiyat bilgileri -->
-            <div class="ilan-alt-bilgi">
-                <span class="ilan-konum">{{ ilan.konum }}</span>
-                <span class="ilan-fiyat">{{ ilan.fiyat }} TL</span>
-            </div>
-            
-            <!-- Beğenme butonları -->
-            <div class="ilan-aksiyonlar">
-                <button class="aksiyon-btn begenme-btn">✕</button>
-                <button class="aksiyon-btn cay-btn">Çay</button>
-                <button class="aksiyon-btn kahve-btn">Kahve</button>
-            </div>
-        </div>
+		<div class="ilan-karti" data-ilan-id="{{ ilan.id }}">
+			<!-- Resim kısmı -->
+			<div class="ilan-resim">
+				{% if ilan.resimler %}
+					{% set first_image = ilan.resimler.split(',')[0] %}
+					<img src="{{ url_for('static', filename='uploads/' + first_image) if file_exists('static/uploads/' + first_image) else url_for('static', filename='images/placeholder.jpg') }}" 
+						 alt="{{ ilan.baslik }}" class="ilan-resim-img">
+				{% else %}
+					<img src="{{ url_for('static', filename='images/placeholder.jpg') }}" 
+						 alt="Resim Yok" class="ilan-resim-img">
+				{% endif %}
+			</div>
+			
+			<!-- Konum ve fiyat bilgileri -->
+			<div class="ilan-alt-bilgi">
+				<span class="ilan-konum">{{ ilan.konum }}</span>
+				<span class="ilan-fiyat">{{ ilan.fiyat }} TL</span>
+			</div>
+			
+			<!-- Beğenme butonları -->
+			<div class="ilan-aksiyonlar">
+				<button class="aksiyon-btn cay-btn" data-tip="cay">🍵 Çay Gönder</button>
+				<button class="aksiyon-btn kahve-btn" data-tip="kahve">☕ Kahve Gönder</button>
+			</div>
+		</div>
         {% endfor %}
     </div>
 </section>

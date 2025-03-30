@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="mesaj-odasi">
+    <div class="mesaj-header">
+        <h2>{{ diger_kullanici.username }} ile Mesajlaşma</h2>
+        <p class="ilan-bilgi">İlan: {{ oda.ilan_baslik }}</p>
+    </div>
+    
+    <div class="mesajlar-container">
+        {% for mesaj in mesajlar %}
+        <div class="mesaj {% if mesaj.gonderen_id == session['user_id'] %}gonderen{% else %}alici{% endif %}">
+            <div class="mesaj-icerik">
+                <p>{{ mesaj.mesaj }}</p>
+                <span class="mesaj-tarih">{{ mesaj.tarih|datetimeformat('%H:%M') }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <form class="mesaj-gonder-form" data-oda-id="{{ oda.id }}">
+        <input type="text" name="mesaj" placeholder="Mesajınızı yazın..." required>
+        <button type="submit">Gönder</button>
+    </form>
+</section>
+{% endblock %}

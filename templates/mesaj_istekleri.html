@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="mesaj-istekleri">
+    <h2>Mesaj İstekleri</h2>
+    
+    <div class="istek-listesi">
+        <h3>Bekleyen İstekler</h3>
+        
+        {% if beklemedeki_istekler %}
+        <div class="istek-grid">
+            {% for istek in beklemedeki_istekler %}
+            <div class="istek-karti {{ istek.tip }}">
+                <div class="istek-header">
+                    <span class="istek-tip">
+                        {% if istek.tip == 'kahve' %}☕ Kahve{% else %}🍵 Çay{% endif %}
+                    </span>
+                    <span class="istek-tarih">{{ istek.tarih|datetimeformat }}</span>
+                </div>
+                
+                <div class="istek-icerik">
+                    <div class="kullanici-bilgi">
+                        <span class="username">{{ istek.gonderen_username }}</span>
+                        <span class="ilan-baslik">{{ istek.ilan_baslik }}</span>
+                    </div>
+                    
+                    <div class="istek-actions">
+                        <form class="istek-kabul-form" data-istek-id="{{ istek.id }}">
+                            <button type="button" class="istek-kabul-btn">Kabul Et</button>
+                            <button type="button" class="istek-red-btn">Reddet</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="bos-liste">Bekleyen istek bulunmamaktadır.</p>
+        {% endif %}
+    </div>
+    
+    <div class="kabul-edilenler">
+        <h3>Kabul Edilenler</h3>
+        
+        {% if kabul_edilenler %}
+        <div class="istek-grid">
+            {% for istek in kabul_edilenler %}
+            <div class="istek-karti kabul-edildi">
+                <div class="istek-header">
+                    <span class="istek-tip">
+                        {% if istek.tip == 'kahve' %}☕ Kahve{% else %}🍵 Çay{% endif %}
+                    </span>
+                    <span class="istek-tarih">{{ istek.tarih|datetimeformat }}</span>
+                </div>
+                
+                <div class="istek-icerik">
+                    <div class="kullanici-bilgi">
+                        <span class="username">{{ istek.gonderen_username }}</span>
+                        <span class="ilan-baslik">{{ istek.ilan_baslik }}</span>
+                    </div>
+                    
+                    <a href="{{ url_for('mesaj_odasi', oda_id=istek.oda_id) }}" class="mesajlas-btn">
+                        Mesajlaş
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="bos-liste">Henüz kabul edilmiş istek bulunmamaktadır.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

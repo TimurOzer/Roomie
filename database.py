@@ -12,7 +12,7 @@ class Database:
     def _create_tables(self):
         cursor = self.conn.cursor()
         
-        # Kullanıcılar tablosu (yorum satırları kaldırıldı)
+        # Kullanıcılar tablosu
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,23 +24,64 @@ class Database:
         )
         ''')
         
-        # Mesajlar tablosu (ileride kullanılmak üzere)
+        # Mesajlaşma istekleri tablosu
         cursor.execute('''
-        CREATE TABLE IF NOT EXISTS mesajlar (
+        CREATE TABLE IF NOT EXISTS mesaj_istekleri (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             gonderen_id INTEGER NOT NULL,
             alici_id INTEGER NOT NULL,
             ilan_id INTEGER NOT NULL,
-            mesaj TEXT NOT NULL,
-            okundu BOOLEAN DEFAULT 0,
+            tip TEXT NOT NULL,  -- 'cay' veya 'kahve'
+            durum TEXT NOT NULL DEFAULT 'beklemede',  -- 'beklemede', 'kabul', 'red'
             tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(gonderen_id) REFERENCES users(id),
             FOREIGN KEY(alici_id) REFERENCES users(id),
-            FOREIGN KEY(ilan_id) REFERENCES ilanlar(id)
+            FOREIGN KEY(ilan_id) REFERENCES ilanlar(id),
+            UNIQUE(gonderen_id, alici_id, ilan_id)
         )
         ''')
         
-        self.conn.commit()        
+        # Mesajlaşma odaları tablosu
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mesaj_odalari (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ilan_id INTEGER NOT NULL,
+            kullanici1_id INTEGER NOT NULL,
+            kullanici2_id INTEGER NOT NULL,
+            olusturulma_tarihi TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(ilan_id) REFERENCES ilanlar(id),
+            FOREIGN KEY(kullanici1_id) REFERENCES users(id),
+            FOREIGN KEY(kullanici2_id) REFERENCES users(id),
+            UNIQUE(kullanici1_id, kullanici2_id, ilan_id)
+        )
+        ''')
+        
+        # Mesajlar tablosu
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mesajlar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            oda_id INTEGER NOT NULL,
+            gonderen_id INTEGER NOT NULL,
+            mesaj TEXT NOT NULL,
+            okundu BOOLEAN DEFAULT 0,
+            tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(oda_id) REFERENCES mesaj_odalari(id),
+            FOREIGN KEY(gonderen_id) REFERENCES users(id)
+        )
+        ''')
+        # Beğeniler tablosu
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS begeniler (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ilan_id INTEGER NOT NULL,
+            gonderen_id INTEGER NOT NULL,
+            tip TEXT NOT NULL,  -- 'cay' veya 'kahve'
+            tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(ilan_id) REFERENCES ilanlar(id),
+            FOREIGN KEY(gonderen_id) REFERENCES users(id),
+            UNIQUE(ilan_id, gonderen_id)  -- Bir kullanıcı bir ilana sadece bir kez beğeni gönderebilir
+        )
+        ''')        
         # İlanlar tablosu
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS ilanlar (
@@ -89,12 +130,10 @@ class Database:
             
             if filters:
                 conditions = []
-                # Cinsiyet filtresi (boş değilse ve 'farketmez' değilse)
                 if filters.get('cinsiyet') and filters['cinsiyet'].lower() != 'farketmez':
                     conditions.append("cinsiyet = ?")
                     params.append(filters['cinsiyet'])
                 
-                # Fiyat aralığı (sadece sayısal değerler için)
                 try:
                     if filters.get('min_fiyat'):
                         conditions.append("fiyat >= ?")
@@ -103,9 +142,8 @@ class Database:
                         conditions.append("fiyat <= ?")
                         params.append(float(filters['max_fiyat']))
                 except (ValueError, TypeError):
-                    pass  # Geçersiz fiyat değerlerini görmezden gel
+                    pass
                 
-                # Diğer filtreler (sigara, alkol, evcil_hayvan)
                 for key in ['sigara', 'alkol', 'evcil_hayvan']:
                     if key in filters and filters[key] in [True, False, 1, 0, '1', '0']:
                         conditions.append(f"{key} = ?")
@@ -114,8 +152,7 @@ class Database:
                 if conditions:
                     query += " WHERE " + " AND ".join(conditions)
             
-            query += " ORDER BY tarih DESC"  # Veya "id DESC"
-            print("DEBUG SQL:", query, params)  # Hata ayıklama için
+            query += " ORDER BY tarih DESC"
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
         except sqlite3.Error as e:
@@ -136,7 +173,8 @@ class Database:
         except sqlite3.Error as e:
             print("İlan detay hatası:", e)
             return None
-    # Yeni metodlar
+
+    # BEGENI İŞLEMLERİ
     def begeni_ekle(self, ilan_id, gonderen_id, tip):
         try:
             cursor = self.conn.cursor()
@@ -172,14 +210,128 @@ class Database:
             if conditions:
                 query += " WHERE " + " AND ".join(conditions)
             
-            query += " ORDER BY b.tip DESC, b.tarih DESC"  # Kahve önce, çay sonra
+            query += " ORDER BY b.tip DESC, b.tarih DESC"
             
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print("Beğeni getirme hatası:", e)
             return []
-    # KULLANICI İŞLEMLERİ (TEK BİR TANE OLMALI!)
+
+    # MESAJ İSTEKLERİ
+    def mesaj_istegi_ekle(self, gonderen_id, alici_id, ilan_id, tip):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                INSERT INTO mesaj_istekleri (gonderen_id, alici_id, ilan_id, tip)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(gonderen_id, alici_id, ilan_id) DO UPDATE SET
+                tip = excluded.tip,
+                durum = CASE WHEN durum = 'red' THEN 'beklemede' ELSE durum END
+            ''', (gonderen_id, alici_id, ilan_id, tip))
+            self.conn.commit()
+            return cursor.lastrowid
+        except sqlite3.Error as e:
+            print("Mesaj isteği ekleme hatası:", e)
+            return None
+
+    def mesaj_istegi_guncelle(self, istek_id, durum):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                UPDATE mesaj_istekleri 
+                SET durum = ?
+                WHERE id = ?
+            ''', (durum, istek_id))
+            self.conn.commit()
+            return cursor.rowcount
+        except sqlite3.Error as e:
+            print("Mesaj isteği güncelleme hatası:", e)
+            return None
+
+    def get_mesaj_istekleri(self, kullanici_id, durum=None):
+        try:
+            cursor = self.conn.cursor()
+            query = '''
+                SELECT mi.*, u.username as gonderen_username, i.baslik as ilan_baslik
+                FROM mesaj_istekleri mi
+                JOIN users u ON mi.gonderen_id = u.id
+                JOIN ilanlar i ON mi.ilan_id = i.id
+                WHERE mi.alici_id = ?
+            '''
+            params = [kullanici_id]
+            
+            if durum:
+                query += " AND mi.durum = ?"
+                params.append(durum)
+            
+            query += " ORDER BY mi.tarih DESC"
+            
+            cursor.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print("Mesaj istekleri getirme hatası:", e)
+            return []
+
+    # MESAJ ODALARI
+    def mesaj_odasi_olustur(self, ilan_id, kullanici1_id, kullanici2_id):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                INSERT INTO mesaj_odalari (ilan_id, kullanici1_id, kullanici2_id)
+                VALUES (?, ?, ?)
+            ''', (ilan_id, kullanici1_id, kullanici2_id))
+            self.conn.commit()
+            return cursor.lastrowid
+        except sqlite3.Error as e:
+            print("Mesaj odası oluşturma hatası:", e)
+            return None
+
+    def get_mesaj_odasi(self, oda_id):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                SELECT mo.*, i.baslik as ilan_baslik
+                FROM mesaj_odalari mo
+                JOIN ilanlar i ON mo.ilan_id = i.id
+                WHERE mo.id = ?
+            ''', (oda_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+        except sqlite3.Error as e:
+            print("Mesaj odası getirme hatası:", e)
+            return None
+
+    # MESAJLAR
+    def mesaj_ekle(self, oda_id, gonderen_id, mesaj):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                INSERT INTO mesajlar (oda_id, gonderen_id, mesaj)
+                VALUES (?, ?, ?)
+            ''', (oda_id, gonderen_id, mesaj))
+            self.conn.commit()
+            return cursor.lastrowid
+        except sqlite3.Error as e:
+            print("Mesaj ekleme hatası:", e)
+            return None
+
+    def get_mesajlar(self, oda_id):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                SELECT m.*, u.username
+                FROM mesajlar m
+                JOIN users u ON m.gonderen_id = u.id
+                WHERE m.oda_id = ?
+                ORDER BY m.tarih ASC
+            ''', (oda_id,))
+            return [dict(row) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print("Mesajlar getirme hatası:", e)
+            return []
+
+    # KULLANICI İŞLEMLERİ
     def user_ekle(self, username, password, email, phone=None):
         try:
             cursor = self.conn.cursor()
@@ -208,7 +360,6 @@ class Database:
     def __del__(self):
         self.close()
 
-# Test için
 if __name__ == '__main__':
     db = Database('test.db')
     

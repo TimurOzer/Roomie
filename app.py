@@ -1,7 +1,7 @@
 import os
 import secrets
 from functools import wraps  # Bu satır eklendi
-from flask import Flask, render_template, request, redirect, url_for, flash, session, g
+from flask import Flask, render_template, request, redirect, url_for, flash, session, g, jsonify, abort
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import Database
@@ -184,25 +184,131 @@ def login():
             flash('Kullanıcı adı veya şifre hatalı', 'danger')
 
     return render_template('login.html')
+@app.route('/mesaj_istekleri')
+@login_required
+def mesaj_istekleri():
+    db = get_db()
+    beklemedeki_istekler = db.get_mesaj_istekleri(session['user_id'], durum='beklemede')
+    kabul_edilenler = db.get_mesaj_istekleri(session['user_id'], durum='kabul')
     
+    return render_template('mesaj_istekleri.html',
+                         beklemedeki_istekler=beklemedeki_istekler,
+                         kabul_edilenler=kabul_edilenler)
+
+@app.route('/mesaj_istek_islem', methods=['POST'])
+@login_required
+def mesaj_istek_islem():
+    istek_id = request.form.get('istek_id')
+    islem = request.form.get('islem')  # 'kabul' veya 'red'
+    
+    if not istek_id or islem not in ['kabul', 'red']:
+        return jsonify({'success': False, 'error': 'Geçersiz istek'}), 400
+    
+    db = get_db()
+    
+    # Önce isteği alıp kullanıcının kendi isteği olup olmadığını kontrol et
+    istek = db.get_mesaj_istegi(istek_id)
+    if not istek or istek['alici_id'] != session['user_id']:
+        return jsonify({'success': False, 'error': 'Yetkisiz işlem'}), 403
+    
+    # İsteği güncelle
+    if db.mesaj_istegi_guncelle(istek_id, islem) > 0:
+        # Eğer kabul edildiyse mesaj odası oluştur
+        if islem == 'kabul':
+            oda_id = db.mesaj_odasi_olustur(
+                istek['ilan_id'],
+                istek['gonderen_id'],
+                istek['alici_id']
+            )
+            if not oda_id:
+                return jsonify({'success': False, 'error': 'Mesaj odası oluşturulamadı'}), 500
+        
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'İşlem yapılamadı'}), 500
+
+@app.route('/mesaj_odasi/<int:oda_id>')
+@login_required
+def mesaj_odasi(oda_id):
+    db = get_db()
+    oda = db.get_mesaj_odasi(oda_id)
+    
+    # Kullanıcının bu odada olup olmadığını kontrol et
+    if not oda or (session['user_id'] not in [oda['kullanici1_id'], oda['kullanici2_id']]):
+        flash('Bu mesaj odasına erişim izniniz yok', 'error')
+        return redirect(url_for('mesajlar'))
+    
+    mesajlar = db.get_mesajlar(oda_id)
+    diger_kullanici = db.get_user(oda['kullanici1_id']) if oda['kullanici2_id'] == session['user_id'] else db.get_user(oda['kullanici2_id'])
+    
+    return render_template('mesaj_odasi.html',
+                         oda=oda,
+                         mesajlar=mesajlar,
+                         diger_kullanici=diger_kullanici)
+
+@app.route('/mesaj_gonder', methods=['POST'])
+@login_required
+def mesaj_gonder():
+    oda_id = request.form.get('oda_id')
+    mesaj = request.form.get('mesaj', '').strip()
+    
+    if not oda_id or not mesaj:
+        return jsonify({'success': False, 'error': 'Geçersiz istek'}), 400
+    
+    db = get_db()
+    oda = db.get_mesaj_odasi(oda_id)
+    
+    # Kullanıcının bu odada olup olmadığını kontrol et
+    if not oda or (session['user_id'] not in [oda['kullanici1_id'], oda['kullanici2_id']]):
+        return jsonify({'success': False, 'error': 'Yetkisiz işlem'}), 403
+    
+    # Mesajı kaydet
+    if db.mesaj_ekle(oda_id, session['user_id'], mesaj):
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Mesaj gönderilemedi'}), 500    
 @app.route('/begeni', methods=['POST'])
 @login_required
 def begeni_ekle():
-    if request.method == 'POST':
-        ilan_id = request.form.get('ilan_id')
-        tip = request.form.get('tip')  # 'cay' veya 'kahve'
-        
-        if not ilan_id or tip not in ['cay', 'kahve']:
-            return jsonify({'success': False, 'error': 'Geçersiz istek'}), 400
-        
-        db = get_db()
+    print("\n--- YENİ BEGENI ISTEGI ---")
+    print("Form Data:", request.form)
+    print("Session:", session)
+    
+    ilan_id = request.form.get('ilan_id')
+    tip = request.form.get('tip')
+    
+    print(f"İlan ID: {ilan_id}, Tip: {tip}")
+    
+    if not ilan_id or tip not in ['cay', 'kahve']:
+        print("Hata: Geçersiz parametreler")
+        return jsonify({'success': False, 'error': 'Geçersiz istek'}), 400
+    
+    db = get_db()
+    ilan = db.get_ilan(ilan_id)
+    
+    if not ilan:
+        print("Hata: İlan bulunamadı")
+        return jsonify({'success': False, 'error': 'İlan bulunamadı'}), 404
+    
+    print(f"İlan Sahibi ID: {ilan['user_id']}")
+    
+    try:
         begeni_id = db.begeni_ekle(ilan_id, session['user_id'], tip)
+        print(f"Beğeni Eklendi, ID: {begeni_id}")
         
-        if begeni_id:
-            return jsonify({'success': True})
-        else:
-            return jsonify({'success': False, 'error': 'Beğeni eklenemedi'}), 500
-
+        mesaj_istegi_id = db.mesaj_istegi_ekle(
+            session['user_id'],
+            ilan['user_id'],
+            ilan_id,
+            tip
+        )
+        print(f"Mesaj İsteği ID: {mesaj_istegi_id}")
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print("Hata:", str(e))
+        return jsonify({'success': False, 'error': str(e)}), 500
+        
 @app.route('/mesajlar')
 @login_required
 def mesajlar():
