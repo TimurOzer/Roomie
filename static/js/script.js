@@ -37,20 +37,42 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Beğenme butonları için etkileşim
+// Beğeni butonları için AJAX
 document.querySelectorAll('.aksiyon-btn').forEach(btn => {
     btn.addEventListener('click', function() {
         const card = this.closest('.ilan-karti');
-        const ilanId = card.dataset.ilanId; // İlan ID'sini almak için kartta data-ilan-id eklemelisiniz
+        const ilanId = card.dataset.ilanId;
+        let tip = '';
         
         if (this.classList.contains('begenme-btn')) {
-            console.log('Beğenilmedi:', ilanId);
-            // AJAX isteği gönderilebilir
+            return; // Çarpı butonu için işlem yapma
         } else if (this.classList.contains('cay-btn')) {
-            console.log('Çay (Beğenme):', ilanId);
-            // AJAX isteği gönderilebilir
+            tip = 'cay';
         } else if (this.classList.contains('kahve-btn')) {
-            console.log('Kahve (Çok Beğenme):', ilanId);
-            // AJAX isteği gönderilebilir
+            tip = 'kahve';
         }
+        
+        fetch('/begeni', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            },
+            body: `ilan_id=${ilanId}&tip=${tip}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Başarılı olduğunda buton rengini değiştir
+                this.style.backgroundColor = tip === 'cay' ? '#e8f5e9' : '#fff3e0';
+                this.style.fontWeight = 'bold';
+            } else {
+                alert('Beğeni gönderilemedi: ' + (data.error || 'Bilinmeyen hata'));
+            }
+        })
+        .catch(error => {
+            console.error('Hata:', error);
+            alert('Bir hata oluştu');
+        });
     });
 });

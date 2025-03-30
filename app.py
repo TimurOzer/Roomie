@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import Database
+from datetime import datetime
 
 # Uygulama oluşturma
 app = Flask(__name__)
@@ -17,7 +18,12 @@ app.config.update(
     MAX_CONTENT_LENGTH=2 * 1024 * 1024,  # 2MB
     DATABASE='ev_arkadasi.db'
 )
-
+@app.template_filter('datetimeformat')
+def datetimeformat(value, format='%d.%m.%Y %H:%M'):
+    if isinstance(value, str):
+        value = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+    return value.strftime(format)
+    
 # Veritabanı bağlantısı
 def get_db():
     if 'db' not in g:
@@ -178,7 +184,39 @@ def login():
             flash('Kullanıcı adı veya şifre hatalı', 'danger')
 
     return render_template('login.html')
+    
+@app.route('/begeni', methods=['POST'])
+@login_required
+def begeni_ekle():
+    if request.method == 'POST':
+        ilan_id = request.form.get('ilan_id')
+        tip = request.form.get('tip')  # 'cay' veya 'kahve'
+        
+        if not ilan_id or tip not in ['cay', 'kahve']:
+            return jsonify({'success': False, 'error': 'Geçersiz istek'}), 400
+        
+        db = get_db()
+        begeni_id = db.begeni_ekle(ilan_id, session['user_id'], tip)
+        
+        if begeni_id:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Beğeni eklenemedi'}), 500
 
+@app.route('/mesajlar')
+@login_required
+def mesajlar():
+    db = get_db()
+    begeniler = db.get_begeniler(kullanici_id=session['user_id'])
+    
+    # Kahve ve çay gönderenleri ayır
+    kahve_gonderenler = [b for b in begeniler if b['tip'] == 'kahve']
+    cay_gonderenler = [b for b in begeniler if b['tip'] == 'cay']
+    
+    return render_template('mesajlar.html', 
+                         kahve_gonderenler=kahve_gonderenler,
+                         cay_gonderenler=cay_gonderenler)
+                         
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':

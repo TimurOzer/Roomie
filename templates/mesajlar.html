@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="mesajlar-section">
+    <h2>Mesajlar</h2>
+    
+    <div class="begeni-listesi">
+        <h3>Kahve Gönderenler <span class="badge">{{ kahve_gonderenler|length }}</span></h3>
+        
+        {% if kahve_gonderenler %}
+        <div class="begeni-grid">
+            {% for begeni in kahve_gonderenler %}
+            <div class="begeni-karti kahve">
+                <div class="begeni-header">
+                    <span class="begeni-tip">☕ Kahve</span>
+                    <span class="begeni-tarih">{{ begeni.tarih|datetimeformat }}</span>
+                </div>
+                <div class="begeni-icerik">
+                    <div class="kullanici-bilgi">
+                        <span class="username">{{ begeni.username }}</span>
+                        <span class="ilan-baslik">{{ begeni.ilan_baslik }}</span>
+                    </div>
+                    <button class="mesaj-gonder-btn" data-gonderen-id="{{ begeni.gonderen_id }}" data-ilan-id="{{ begeni.ilan_id }}">
+                        Mesaj Gönder
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="bos-liste">Henüz kahve gönderen yok.</p>
+        {% endif %}
+        
+        <h3>Çay Gönderenler <span class="badge">{{ cay_gonderenler|length }}</span></h3>
+        
+        {% if cay_gonderenler %}
+        <div class="begeni-grid">
+            {% for begeni in cay_gonderenler %}
+            <div class="begeni-karti cay">
+                <div class="begeni-header">
+                    <span class="begeni-tip">🍵 Çay</span>
+                    <span class="begeni-tarih">{{ begeni.tarih|datetimeformat }}</span>
+                </div>
+                <div class="begeni-icerik">
+                    <div class="kullanici-bilgi">
+                        <span class="username">{{ begeni.username }}</span>
+                        <span class="ilan-baslik">{{ begeni.ilan_baslik }}</span>
+                    </div>
+                    <button class="mesaj-gonder-btn" data-gonderen-id="{{ begeni.gonderen_id }}" data-ilan-id="{{ begeni.ilan_id }}">
+                        Mesaj Gönder
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="bos-liste">Henüz çay gönderen yok.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

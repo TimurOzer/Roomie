@@ -13,6 +13,7 @@
             <a href="{{ url_for('index') }}">Ana Sayfa</a>
             {% if 'user_id' in session %}
                 <a href="{{ url_for('ilan_ver') }}">İlan Ver</a>
+    		<a href="{{ url_for('mesajlar') }}">Mesajlar</a>
                 <a href="{{ url_for('logout') }}">Çıkış Yap ({{ session['username'] }})</a>
             {% else %}
                 <a href="{{ url_for('login') }}">Giriş Yap</a>

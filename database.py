@@ -24,6 +24,23 @@ class Database:
         )
         ''')
         
+        # Mesajlar tablosu (ileride kullanılmak üzere)
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mesajlar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            gonderen_id INTEGER NOT NULL,
+            alici_id INTEGER NOT NULL,
+            ilan_id INTEGER NOT NULL,
+            mesaj TEXT NOT NULL,
+            okundu BOOLEAN DEFAULT 0,
+            tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(gonderen_id) REFERENCES users(id),
+            FOREIGN KEY(alici_id) REFERENCES users(id),
+            FOREIGN KEY(ilan_id) REFERENCES ilanlar(id)
+        )
+        ''')
+        
+        self.conn.commit()        
         # İlanlar tablosu
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS ilanlar (
@@ -119,7 +136,49 @@ class Database:
         except sqlite3.Error as e:
             print("İlan detay hatası:", e)
             return None
+    # Yeni metodlar
+    def begeni_ekle(self, ilan_id, gonderen_id, tip):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                INSERT OR REPLACE INTO begeniler (ilan_id, gonderen_id, tip)
+                VALUES (?, ?, ?)
+            ''', (ilan_id, gonderen_id, tip))
+            self.conn.commit()
+            return cursor.lastrowid
+        except sqlite3.Error as e:
+            print("Beğeni ekleme hatası:", e)
+            return None
 
+    def get_begeniler(self, ilan_id=None, kullanici_id=None):
+        try:
+            cursor = self.conn.cursor()
+            query = '''
+                SELECT b.*, u.username, i.baslik as ilan_baslik 
+                FROM begeniler b
+                JOIN users u ON b.gonderen_id = u.id
+                JOIN ilanlar i ON b.ilan_id = i.id
+            '''
+            params = []
+            
+            conditions = []
+            if ilan_id:
+                conditions.append("b.ilan_id = ?")
+                params.append(ilan_id)
+            if kullanici_id:
+                conditions.append("i.user_id = ?")
+                params.append(kullanici_id)
+            
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+            
+            query += " ORDER BY b.tip DESC, b.tarih DESC"  # Kahve önce, çay sonra
+            
+            cursor.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print("Beğeni getirme hatası:", e)
+            return []
     # KULLANICI İŞLEMLERİ (TEK BİR TANE OLMALI!)
     def user_ekle(self, username, password, email, phone=None):
         try:
