@@ -35,3 +35,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     });
 });
+
+// Beğenme butonları için etkileşim
+document.querySelectorAll('.aksiyon-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const card = this.closest('.ilan-karti');
+        const ilanId = card.dataset.ilanId; // İlan ID'sini almak için kartta data-ilan-id eklemelisiniz
+        
+        if (this.classList.contains('begenme-btn')) {
+            console.log('Beğenilmedi:', ilanId);
+            // AJAX isteği gönderilebilir
+        } else if (this.classList.contains('cay-btn')) {
+            console.log('Çay (Beğenme):', ilanId);
+            // AJAX isteği gönderilebilir
+        } else if (this.classList.contains('kahve-btn')) {
+            console.log('Kahve (Çok Beğenme):', ilanId);
+            // AJAX isteği gönderilebilir
+        }
+    });
+});

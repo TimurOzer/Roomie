@@ -74,66 +74,80 @@ footer {
     margin-top: 1.5rem;
 }
 
+/* Yeni ilan kartı stili */
 .ilan-karti {
-    background-color: white;
+    background: white;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    transition: transform 0.3s, box-shadow 0.3s;
-    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
 }
 
 .ilan-karti:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
 .ilan-resim {
-    height: 200px;
-    background-size: cover;
-    background-position: center;
+    height: 350px;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
 }
 
-.no-image {
-    background-color: #ddd;
+.ilan-resim-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ilan-alt-bilgi {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #777;
+    justify-content: space-between;
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
 }
 
-.ilan-bilgileri {
-    padding: 1rem;
+.ilan-konum {
+    color: #555;
 }
 
-.ilan-bilgileri h3 {
-    margin: 0 0 0.5rem 0;
+.ilan-fiyat {
+    font-weight: bold;
     color: #4CAF50;
 }
 
-.fiyat {
-    font-weight: bold;
-    font-size: 1.2rem;
-    color: #333;
-    margin: 0.5rem 0;
-}
-
-.konum {
-    color: #666;
-    margin: 0.5rem 0;
-}
-
-.ozellikler {
+.ilan-aksiyonlar {
     display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    padding: 8px 0;
 }
 
-.ozellikler span {
-    padding: 0.3rem 0.6rem;
-    background-color: #f0f0f0;
-    border-radius: 4px;
-    font-size: 0.9rem;
+.aksiyon-btn {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.aksiyon-btn:hover {
+    background-color: #f5f5f5;
+}
+
+.begenme-btn {
+    color: #ff5252;
+}
+
+.cay-btn {
+    color: #4CAF50;
+}
+
+.kahve-btn {
+    color: #795548;
 }
 
 /* Arama formu */
