@@ -1,38 +1,57 @@
+/* Roomie - Ev Arkadaşı Bulma Platformu */
+:root {
+    --primary-color: #FF6B6B;  /* Sıcak pembe/kırmızı */
+    --secondary-color: #4ECDC4;  /* Pastel turkuaz */
+    --accent-color: #FFE66D;  /* Sarı aksan */
+    --dark-color: #292F36;  /* Koyu arkaplan */
+    --light-color: #F7FFF7;  /* Açık arkaplan */
+    --text-color: #333333;
+    --text-light: #ffffff;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --border-radius: 12px;
+}
+
 /* Temel Stiller */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     margin: 0;
     padding: 0;
-    color: #333;
-    background-color: #f5f5f5;
+    color: var(--text-color);
+    background-color: var(--light-color);
 }
 
 header {
-    background-color: #4CAF50;
-    color: white;
-    padding: 1rem 0;
+    background-color: var(--dark-color);
+    color: var(--text-light);
+    padding: 1.5rem 0;
     text-align: center;
+    box-shadow: var(--shadow);
 }
 
 nav {
     display: flex;
     justify-content: center;
-    gap: 1rem;
-    padding: 0.5rem 0;
-    background-color: #3e8e41;
+    gap: 1.5rem;
+    padding: 1rem 0;
+    background-color: rgba(0, 0, 0, 0.1);
 }
 
 nav a {
-    color: white;
+    color: var(--text-light);
     text-decoration: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    transition: background-color 0.3s;
+    padding: 0.5rem 1.5rem;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 nav a:hover {
-    background-color: #2d6a2f;
+    background-color: var(--primary-color);
+    transform: translateY(-2px);
 }
 
 main {
@@ -43,9 +62,9 @@ main {
 
 footer {
     text-align: center;
-    padding: 1rem 0;
-    background-color: #333;
-    color: white;
+    padding: 1.5rem 0;
+    background-color: var(--dark-color);
+    color: var(--text-light);
     margin-top: 2rem;
 }
 
@@ -53,17 +72,20 @@ footer {
 .flash {
     padding: 1rem;
     margin-bottom: 1rem;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
+    font-weight: 600;
 }
 
 .flash.success {
-    background-color: #dff0d8;
-    color: #3c763d;
+    background-color: rgba(76, 175, 80, 0.2);
+    color: #2E7D32;
+    border-left: 4px solid #2E7D32;
 }
 
 .flash.error {
-    background-color: #f2dede;
-    color: #a94442;
+    background-color: rgba(244, 67, 54, 0.2);
+    color: #C62828;
+    border-left: 4px solid #C62828;
 }
 
 /* İlan kartları */
@@ -74,23 +96,24 @@ footer {
     margin-top: 1.5rem;
 }
 
-/* Yeni ilan kartı stili */
 .ilan-karti {
     background: white;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .ilan-karti:hover {
     transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
 .ilan-resim {
-    height: 350px;
+    height: 200px;
     width: 100%;
     overflow: hidden;
     position: relative;
@@ -100,50 +123,63 @@ footer {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.ilan-karti:hover .ilan-resim-img {
+    transform: scale(1.05);
 }
 
 .ilan-alt-bilgi {
     display: flex;
     justify-content: space-between;
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-    font-size: 14px;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-size: 0.9rem;
 }
 
 .ilan-konum {
     color: #555;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
 }
 
 .ilan-fiyat {
     font-weight: bold;
-    color: #4CAF50;
+    color: var(--primary-color);
+    font-size: 1.1rem;
 }
 
 .ilan-aksiyonlar {
     display: flex;
-    padding: 8px 0;
+    padding: 0;
 }
 
 .aksiyon-btn {
     flex: 1;
-    padding: 8px 0;
+    padding: 0.8rem 0;
     border: none;
     background: none;
     cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
 }
 
 .aksiyon-btn:hover {
-    background-color: #f5f5f5;
+    background-color: rgba(0, 0, 0, 0.03);
 }
 
 .begenme-btn {
-    color: #ff5252;
+    color: var(--primary-color);
 }
 
 .cay-btn {
-    color: #4CAF50;
+    color: var(--secondary-color);
 }
 
 .kahve-btn {
@@ -154,8 +190,8 @@ footer {
 .search-section {
     background-color: white;
     padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
     margin-bottom: 2rem;
 }
 
@@ -165,34 +201,46 @@ footer {
     flex-wrap: wrap;
 }
 
-.search-form input, .search-form select {
-    padding: 0.5rem;
+.search-form input, 
+.search-form select {
+    padding: 0.7rem;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     flex: 1;
     min-width: 200px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+}
+
+.search-form input:focus, 
+.search-form select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }
 
 .search-form button {
-    padding: 0.5rem 1rem;
-    background-color: #4CAF50;
+    padding: 0.7rem 1.5rem;
+    background-color: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    font-weight: 600;
 }
 
 .search-form button:hover {
-    background-color: #3e8e41;
+    background-color: #e05555;
+    transform: translateY(-2px);
 }
 
 /* İlan verme formu */
 .ilan-verme {
     background-color: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
     max-width: 800px;
     margin: 0 auto;
 }
@@ -203,7 +251,7 @@ footer {
 
 .form-row {
     display: flex;
-    gap: 1rem;
+    gap: 1.5rem;
     margin-bottom: 1.5rem;
 }
 
@@ -215,7 +263,8 @@ footer {
 label {
     display: block;
     margin-bottom: 0.5rem;
-    font-weight: bold;
+    font-weight: 600;
+    color: var(--dark-color);
 }
 
 input[type="text"],
@@ -223,20 +272,30 @@ input[type="number"],
 textarea,
 select {
     width: 100%;
-    padding: 0.5rem;
+    padding: 0.7rem;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     font-family: inherit;
+    transition: all 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }
 
 textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 120px;
 }
 
 .checkbox-group {
     display: flex;
-    gap: 1rem;
+    gap: 1.5rem;
     flex-wrap: wrap;
 }
 
@@ -249,44 +308,47 @@ textarea {
 }
 
 .submit-btn {
-    background-color: #4CAF50;
+    background-color: var(--primary-color);
     color: white;
-    padding: 0.75rem 1.5rem;
+    padding: 0.8rem 1.8rem;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     font-size: 1rem;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    width: 100%;
 }
 
 .submit-btn:hover {
-    background-color: #3e8e41;
+    background-color: #e05555;
+    transform: translateY(-2px);
 }
 
 /* İlan detay sayfası */
 .ilan-detay {
     background-color: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
     max-width: 800px;
     margin: 0 auto;
 }
 
 .ilan-baslik {
     margin-bottom: 1.5rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     padding-bottom: 1rem;
 }
 
 .ilan-baslik h2 {
     margin: 0 0 0.5rem 0;
-    color: #4CAF50;
+    color: var(--primary-color);
 }
 
 .ilan-galeri {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
@@ -295,7 +357,13 @@ textarea {
     height: 200px;
     background-size: cover;
     background-position: center;
-    border-radius: 4px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.galeri-resim:hover {
+    transform: scale(1.02);
 }
 
 .ilan-ozellikler {
@@ -308,7 +376,13 @@ textarea {
 .ozellik {
     background-color: #f9f9f9;
     padding: 1rem;
-    border-radius: 4px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.ozellik:hover {
+    background-color: #f0f0f0;
+    transform: translateY(-3px);
 }
 
 .etiket {
@@ -321,35 +395,41 @@ textarea {
 .deger {
     display: block;
     margin-top: 0.3rem;
+    font-size: 1.1rem;
 }
 
 .ilan-aciklama {
     margin-bottom: 1.5rem;
-    padding: 1rem;
+    padding: 1.5rem;
     background-color: #f9f9f9;
-    border-radius: 4px;
+    border-radius: 8px;
+    line-height: 1.8;
 }
 
 .iletisim-btn {
-    background-color: #4CAF50;
+    background-color: var(--primary-color);
     color: white;
-    padding: 0.75rem 1.5rem;
+    padding: 0.8rem 1.8rem;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     font-size: 1rem;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    width: 100%;
     margin-bottom: 1rem;
 }
 
 .iletisim-btn:hover {
-    background-color: #3e8e41;
+    background-color: #e05555;
+    transform: translateY(-2px);
 }
 
 .iletisim-bilgileri {
-    padding: 1rem;
+    padding: 1.5rem;
     background-color: #f9f9f9;
-    border-radius: 4px;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
 }
 
 /* Login Sayfası Stilleri */
@@ -358,8 +438,8 @@ textarea {
     margin: 2rem auto;
     padding: 2rem;
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
 }
 
 .login-form {
@@ -376,29 +456,31 @@ textarea {
 
 .form-group label {
     font-weight: 600;
-    color: #333;
+    color: var(--dark-color);
 }
 
 .form-group input {
-    padding: 0.75rem;
+    padding: 0.8rem;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     font-size: 1rem;
 }
 
 .btn-login {
-    background-color: #4CAF50;
+    background-color: var(--primary-color);
     color: white;
-    padding: 0.75rem;
+    padding: 0.8rem;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     cursor: pointer;
     font-size: 1rem;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    font-weight: 600;
 }
 
 .btn-login:hover {
-    background-color: #3e8e41;
+    background-color: #e05555;
+    transform: translateY(-2px);
 }
 
 .register-link {
@@ -408,77 +490,59 @@ textarea {
 }
 
 .register-link a {
-    color: #4CAF50;
+    color: var(--primary-color);
     text-decoration: none;
+    font-weight: 600;
 }
 
 .register-link a:hover {
     text-decoration: underline;
 }
 
-/* Filtre formunu daha belirgin hale getirin */
-form {
-  background: #f5f5f5;
-  padding: 15px;
-  border-radius: 5px;
-  margin-bottom: 20px;
-}
-
-select, input[type="number"] {
-  padding: 8px;
-  margin-right: 10px;
-}
-
-.active-filters .badge {
-  background: #4CAF50;
-  color: white;
-  padding: 3px 8px;
-  border-radius: 3px;
-  margin-left: 5px;
-}
-
 /* Mesajlar Sayfası */
 .mesajlar-section {
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 2rem;
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
 }
 
 .begeni-listesi h3 {
     margin-top: 30px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
-    color: #333;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    color: var(--dark-color);
 }
 
 .badge {
-    background: #4CAF50;
+    background: var(--primary-color);
     color: white;
-    padding: 3px 8px;
-    border-radius: 12px;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
     font-size: 0.8em;
+    font-weight: 600;
 }
 
 .begeni-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 15px;
-    margin-top: 15px;
+    gap: 1rem;
+    margin-top: 1rem;
 }
 
 .begeni-karti {
-    border: 1px solid #eee;
-    border-radius: 8px;
-    padding: 15px;
-    transition: transform 0.2s;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    background: white;
 }
 
 .begeni-karti:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    transform: translateY(-5px);
+    box-shadow: var(--shadow);
 }
 
 .begeni-karti.kahve {
@@ -486,13 +550,13 @@ select, input[type="number"] {
 }
 
 .begeni-karti.cay {
-    border-left: 4px solid #4CAF50;
+    border-left: 4px solid var(--secondary-color);
 }
 
 .begeni-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 1rem;
     font-size: 0.9em;
     color: #666;
 }
@@ -502,13 +566,15 @@ select, input[type="number"] {
 }
 
 .kullanici-bilgi {
-    margin-bottom: 15px;
+    margin-bottom: 1rem;
 }
 
 .kullanici-bilgi .username {
     font-weight: bold;
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 0.5rem;
+    color: var(--dark-color);
+    font-size: 1.1rem;
 }
 
 .kullanici-bilgi .ilan-baslik {
@@ -517,64 +583,71 @@ select, input[type="number"] {
 }
 
 .mesaj-gonder-btn {
-    background-color: #4CAF50;
+    background-color: var(--primary-color);
     color: white;
     border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
+    padding: 0.7rem 1.2rem;
+    border-radius: var(--border-radius);
     cursor: pointer;
     font-size: 0.9em;
-    transition: background-color 0.2s;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .mesaj-gonder-btn:hover {
-    background-color: #3e8e41;
+    background-color: #e05555;
+    transform: translateY(-2px);
 }
 
 .bos-liste {
     color: #999;
     text-align: center;
-    padding: 20px;
+    padding: 2rem;
     background: #f9f9f9;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
+    border: 1px dashed #ddd;
 }
 
 /* Mesaj İstekleri Sayfası */
 .mesaj-istekleri {
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 2rem;
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
 }
 
 .istek-listesi, .kabul-edilenler {
-    margin-bottom: 30px;
+    margin-bottom: 2rem;
 }
 
 .istek-listesi h3, .kabul-edilenler h3 {
-    margin-bottom: 15px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    color: var(--dark-color);
 }
 
 .istek-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 15px;
+    gap: 1rem;
 }
 
 .istek-karti {
-    border: 1px solid #eee;
-    border-radius: 8px;
-    padding: 15px;
-    transition: transform 0.2s;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    background: white;
 }
 
 .istek-karti:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    transform: translateY(-5px);
+    box-shadow: var(--shadow);
 }
 
 .istek-karti.kahve {
@@ -582,17 +655,17 @@ select, input[type="number"] {
 }
 
 .istek-karti.cay {
-    border-left: 4px solid #4CAF50;
+    border-left: 4px solid var(--secondary-color);
 }
 
 .istek-karti.kabul-edildi {
-    border-left: 4px solid #2196F3;
+    border-left: 4px solid var(--secondary-color);
 }
 
 .istek-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 1rem;
     font-size: 0.9em;
 }
 
@@ -605,71 +678,76 @@ select, input[type="number"] {
 }
 
 .istek-icerik {
-    margin-top: 10px;
+    margin-top: 1rem;
 }
 
 .istek-actions {
-    margin-top: 15px;
+    margin-top: 1.5rem;
     display: flex;
-    gap: 10px;
+    gap: 1rem;
 }
 
 .istek-kabul-btn, .istek-red-btn {
-    padding: 8px 15px;
+    padding: 0.7rem 1.2rem;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     cursor: pointer;
     font-size: 0.9em;
-    transition: background-color 0.2s;
+    transition: all 0.3s ease;
+    font-weight: 600;
 }
 
 .istek-kabul-btn {
-    background-color: #4CAF50;
+    background-color: var(--secondary-color);
     color: white;
 }
 
 .istek-kabul-btn:hover {
-    background-color: #3e8e41;
+    background-color: #3bb4ac;
+    transform: translateY(-2px);
 }
 
 .istek-red-btn {
-    background-color: #f44336;
+    background-color: #FF6B6B;
     color: white;
 }
 
 .istek-red-btn:hover {
-    background-color: #d32f2f;
+    background-color: #e05555;
+    transform: translateY(-2px);
 }
 
 .mesajlas-btn {
     display: inline-block;
-    padding: 8px 15px;
-    background-color: #2196F3;
+    padding: 0.7rem 1.2rem;
+    background-color: var(--secondary-color);
     color: white;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     text-decoration: none;
     font-size: 0.9em;
-    transition: background-color 0.2s;
+    transition: all 0.3s ease;
+    font-weight: 600;
 }
 
 .mesajlas-btn:hover {
-    background-color: #0b7dda;
+    background-color: #3bb4ac;
+    transform: translateY(-2px);
 }
 
 /* Mesaj Odası Sayfası */
 .mesaj-odasi {
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 2rem;
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
 }
 
 .mesaj-header {
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eee;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .ilan-bilgi {
@@ -680,14 +758,14 @@ select, input[type="number"] {
 .mesajlar-container {
     max-height: 500px;
     overflow-y: auto;
-    margin-bottom: 20px;
-    padding: 10px;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
     background: #f9f9f9;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
 }
 
 .mesaj {
-    margin-bottom: 15px;
+    margin-bottom: 1rem;
     display: flex;
 }
 
@@ -701,17 +779,20 @@ select, input[type="number"] {
 
 .mesaj-icerik {
     max-width: 70%;
-    padding: 10px 15px;
+    padding: 0.8rem 1.2rem;
     border-radius: 18px;
     position: relative;
 }
 
 .mesaj.gonderen .mesaj-icerik {
-    background-color: #DCF8C6;
+    background-color: var(--primary-color);
+    color: white;
+    border-bottom-right-radius: 4px;
 }
 
 .mesaj.alici .mesaj-icerik {
     background-color: #ECECEC;
+    border-bottom-left-radius: 4px;
 }
 
 .mesaj-tarih {
@@ -719,182 +800,228 @@ select, input[type="number"] {
     font-size: 0.7em;
     color: #666;
     text-align: right;
-    margin-top: 5px;
+    margin-top: 0.5rem;
 }
 
 .mesaj-gonder-form {
     display: flex;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 1rem;
+    margin-top: 1.5rem;
 }
 
 .mesaj-gonder-form input {
     flex: 1;
-    padding: 10px 15px;
+    padding: 0.8rem 1.2rem;
     border: 1px solid #ddd;
     border-radius: 20px;
     font-size: 1em;
+    transition: all 0.3s ease;
+}
+
+.mesaj-gonder-form input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }
 
 .mesaj-gonder-form button {
-    padding: 10px 20px;
-    background-color: #4CAF50;
+    padding: 0.8rem 1.5rem;
+    background-color: var(--primary-color);
     color: white;
     border: none;
     border-radius: 20px;
     cursor: pointer;
     font-size: 1em;
-    transition: background-color 0.2s;
+    transition: all 0.3s ease;
+    font-weight: 600;
 }
 
 .mesaj-gonder-form button:hover {
-    background-color: #3e8e41;
-}
-
-/* İlan kartı butonları */
-.ilan-aksiyonlar {
-    display: flex;
-    justify-content: space-around;
-    padding: 10px;
-    border-top: 1px solid #eee;
-}
-
-.aksiyon-btn {
-    padding: 8px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.aksiyon-btn:hover {
+    background-color: #e05555;
     transform: translateY(-2px);
 }
 
-.cay-btn {
-    background-color: #d4edda;
-    color: #155724;
+/* Responsive Tasarım */
+@media (max-width: 768px) {
+    nav {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .search-form {
+        flex-direction: column;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .ilan-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .mesaj-icerik {
+        max-width: 85%;
+    }
 }
 
-.kahve-btn {
-    background-color: #fff3cd;
-    color: #856404;
+/* Animasyonlar */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.aksiyon-btn[disabled] {
-    opacity: 0.7;
-    cursor: not-allowed;
+.ilan-karti, .begeni-karti, .istek-karti {
+    animation: fadeIn 0.5s ease forwards;
 }
 
-/* Mesajlaşma sayfası stilleri */
-.mesaj-odasi {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+/* Özel Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
 }
 
-.mesaj-header {
-    text-align: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
 }
 
-.mesajlar-container {
-    height: 500px;
-    overflow-y: auto;
-    padding: 10px;
-    margin-bottom: 20px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background-color: #f9f9f9;
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 10px;
 }
 
-.mesaj {
-    margin-bottom: 15px;
-    clear: both;
+::-webkit-scrollbar-thumb:hover {
+    background: #e05555;
 }
 
-.mesaj-icerik {
-    max-width: 70%;
-    padding: 10px 15px;
-    border-radius: 18px;
-    position: relative;
-}
-
-.mesaj.gonderen .mesaj-icerik {
-    float: right;
-    background-color: #dcf8c6;
-    margin-left: 30%;
-}
-
-.mesaj.alici .mesaj-icerik {
-    float: left;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    margin-right: 30%;
-}
-
-.mesaj-tarih {
-    display: block;
-    font-size: 0.8em;
-    color: #666;
-    margin-top: 5px;
-    text-align: right;
-}
-
-.mesaj-gonder-form {
-    display: flex;
-    gap: 10px;
-}
-
-.mesaj-gonder-form input {
-    flex-grow: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.mesaj-gonder-form button {
-    padding: 10px 20px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.mesaj-gonder-form button:hover {
-    background-color: #45a049;
-}
-
-/* Mesaj butonları */
-.mesajlas-btn {
-    padding: 8px 15px;
-    background-color: #4CAF50;
-    color: white;
-    border-radius: 4px;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.mesajlas-btn.disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-
-.mesajlas-btn:hover:not(.disabled) {
-    background-color: #45a049;
-}
-
+/* Notification badge */
 .notification-badge {
-    background-color: red;
-    color: white;
+    background-color: var(--accent-color);
+    color: var(--dark-color);
     border-radius: 50%;
     padding: 2px 6px;
     font-size: 12px;
     margin-left: 5px;
+    font-weight: bold;
+}
+
+/* Placeholder resim */
+.no-image {
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 0.9rem;
+}
+
+/* Kayıt formu */
+.register-section {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.btn-register {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.8rem;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.btn-register:hover {
+    background-color: #e05555;
+    transform: translateY(-2px);
+}
+
+.login-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: #666;
+}
+
+.login-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+/* Bildirimler sayfası */
+.bildirimler {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.bildirim-listesi {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.bildirim-karti {
+    padding: 1.2rem;
+    border-radius: var(--border-radius);
+    background: #f9f9f9;
+    transition: all 0.3s ease;
+    border-left: 4px solid #ddd;
+}
+
+.bildirim-karti.okunmamis {
+    border-left: 4px solid var(--primary-color);
+    background: white;
+    box-shadow: var(--shadow);
+}
+
+.bildirim-karti:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
+}
+
+.bildirim-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.8rem;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.tarih {
+    font-style: italic;
+}
+
+.btn-small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-small:hover {
+    background-color: #e05555;
+    transform: translateY(-2px);
 }
