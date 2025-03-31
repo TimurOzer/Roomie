@@ -153,7 +153,32 @@ def ilan_ver():
             flash('İlan eklenirken hata oluştu', 'error')
     
     return render_template('ilan_ver.html')
-
+@app.route('/mesaj_gonder', methods=['POST'])
+@login_required
+def mesaj_gonder():
+    # CSRF kontrolü
+    if request.form.get('csrf_token') != session.get('_csrf_token'):
+        abort(403)
+    
+    oda_id = request.form.get('oda_id')
+    mesaj = request.form.get('mesaj', '').strip()
+    
+    if not oda_id or not mesaj:
+        return jsonify({'success': False, 'error': 'Geçersiz veri'}), 400
+    
+    db = get_db()
+    
+    # Kullanıcının bu odada olup olmadığını kontrol et
+    oda = db.get_mesaj_odasi(oda_id)
+    if not oda or session['user_id'] not in (oda['kullanici1_id'], oda['kullanici2_id']):
+        return jsonify({'success': False, 'error': 'Yetkisiz işlem'}), 403
+    
+    # Mesajı veritabanına ekle
+    mesaj_id = db.mesaj_ekle(oda_id, session['user_id'], mesaj)
+    if mesaj_id:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Mesaj gönderilemedi'}), 500
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user_id' in session:
@@ -263,6 +288,7 @@ def mesaj_odasi(oda_id):
         flash('Mesaj odası bulunamadı', 'error')
         return redirect(url_for('mesajlar'))
     
+    # İki kullanıcıdan biri olup olmadığını kontrol et
     if session['user_id'] not in (oda['kullanici1_id'], oda['kullanici2_id']):
         flash('Bu mesaj odasına erişim izniniz yok', 'error')
         return redirect(url_for('mesajlar'))
@@ -275,7 +301,6 @@ def mesaj_odasi(oda_id):
                          oda=oda,
                          mesajlar=mesajlar,
                          diger_kullanici=diger_kullanici)
-        
 @app.route('/begeni', methods=['POST'])
 @login_required
 def begeni_ekle():

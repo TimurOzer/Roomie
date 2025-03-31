@@ -18,10 +18,12 @@
         {% endfor %}
     </div>
     
-    <form class="mesaj-gonder-form" id="mesaj-form" data-oda-id="{{ oda.id }}">
-        <input type="text" name="mesaj" id="mesaj-input" placeholder="Mesajınızı yazın..." required>
-        <button type="submit">Gönder</button>
-    </form>
+	<form id="mesaj-form" onsubmit="return false;">
+		<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+		<input type="hidden" name="oda_id" value="{{ oda.id }}">
+		<input type="text" name="mesaj" id="mesaj-input" placeholder="Mesajınızı yazın..." required>
+		<button type="button" onclick="mesajGonder()">Gönder</button>
+	</form>
 </section>
 
 <script>
@@ -72,5 +74,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function mesajGonder() {
+    const form = document.getElementById('mesaj-form');
+    const formData = new FormData(form);
+    
+    fetch('/mesaj_gonder', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mesajı ekrana ekle
+            const mesajDiv = document.createElement('div');
+            mesajDiv.className = 'mesaj gonderen';
+            mesajDiv.innerHTML = `
+                <div class="mesaj-icerik">
+                    <p>${formData.get('mesaj')}</p>
+                    <span class="mesaj-tarih">Şimdi</span>
+                </div>
+            `;
+            document.getElementById('mesajlar-container').appendChild(mesajDiv);
+            
+            // Input'u temizle
+            document.getElementById('mesaj-input').value = '';
+        } else {
+            alert('Hata: ' + (data.error || 'Mesaj gönderilemedi'));
+        }
+    })
+    .catch(error => {
+        console.error('Hata:', error);
+        alert('Bir hata oluştu');
+    });
+}
 </script>
 {% endblock %}

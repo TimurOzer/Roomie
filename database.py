@@ -271,7 +271,7 @@ class Database:
     def get_user_by_id(self, user_id):
         cursor = self.conn.cursor()
         cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
-        return cursor.fetchone()        
+        return cursor.fetchone()
     def get_mesaj_istekleri(self, kullanici_id, durum=None):
         try:
             cursor = self.conn.cursor()
@@ -326,19 +326,11 @@ class Database:
             return None
 
     def get_mesaj_odasi(self, oda_id):
-        try:
-            cursor = self.conn.cursor()
-            cursor.execute('''
-                SELECT mo.*, i.baslik as ilan_baslik
-                FROM mesaj_odalari mo
-                JOIN ilanlar i ON mo.ilan_id = i.id
-                WHERE mo.id = ?
-            ''', (oda_id,))
-            row = cursor.fetchone()
-            return dict(row) if row else None
-        except sqlite3.Error as e:
-            print("Mesaj odası getirme hatası:", e)
-            return None
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            SELECT * FROM mesaj_odalari WHERE id = ?
+        ''', (oda_id,))
+        return cursor.fetchone()
 
     # MESAJLAR
     def mesaj_ekle(self, oda_id, gonderen_id, mesaj):
