@@ -23,13 +23,17 @@ def datetimeformat(value, format='%d.%m.%Y %H:%M'):
     if isinstance(value, str):
         value = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
     return value.strftime(format)
+
+@app.template_filter('file_exists')
+def file_exists_filter(path):
+    return os.path.exists(path)
     
 # Veritabanı bağlantısı
 def get_db():
     if 'db' not in g:
         g.db = Database(app.config['DATABASE'])
     return g.db
-
+        
 @app.teardown_appcontext
 def close_db(error):
     db = g.pop('db', None)
@@ -226,12 +230,8 @@ def mesaj_istekleri():
 @app.route('/mesaj_istek_islem', methods=['POST'])
 @login_required
 def mesaj_istek_islem():
-    # Debug için tüm form verilerini yazdır
-    print("Form verileri:", request.form)
-    
     # CSRF kontrolü
     if request.form.get('csrf_token') != session.get('_csrf_token'):
-        print("CSRF token eşleşmiyor!")
         abort(403)
     
     istek_id = request.form.get('istek_id')
@@ -240,59 +240,71 @@ def mesaj_istek_islem():
     db = get_db()
     istek = db.get_mesaj_istegi(istek_id)
     
-    # Debug çıktıları
-    print(f"İstek ID: {istek_id}, İşlem: {islem}")
-    print(f"İstek Detay: {istek}")
-    print(f"Session User ID: {session['user_id']}")
-    
     if not istek or istek['alici_id'] != session['user_id']:
-        print("Yetkisiz işlem denemesi!")
         abort(403)
     
-    # Veritabanı güncellemesini kontrol et
-    rowcount = db.mesaj_istegi_guncelle(istek_id, islem)
-    print(f"Etkilenen satır sayısı: {rowcount}")
-    
-    if rowcount > 0:
-        if islem == 'kabul':
-            # Kullanıcı ID'lerini doğru sırayla verin
-            gonderen_id = istek['gonderen_id']  # Çay gönderen
-            alici_id = istek['alici_id']        # Ev sahibi
-            
-            # Önce var olan bir oda olup olmadığını kontrol et
-            oda = db.get_mesaj_odasi_by_users(istek['ilan_id'], gonderen_id, alici_id)
-            
-            if oda:
-                oda_id = oda['id']
-            else:
-                # Yeni oda oluştur
-                oda_id = db.mesaj_odasi_olustur(
-                    istek['ilan_id'],
-                    gonderen_id,  # Önce gönderen
-                    alici_id      # Sonra alıcı
-                )
-            
-            print(f"Mesaj odası ID: {oda_id}")
-            
-            if oda_id:
-                # Mesaj isteğini güncelle
-                cursor = db.conn.cursor()
-                cursor.execute(
-                    "UPDATE mesaj_istekleri SET durum = ?, oda_id = ? WHERE id = ?",
-                    (islem, oda_id, istek_id)
-                )
-                db.conn.commit()
-                
-                # Onarıcıyı çalıştır (güvenlik için)
-                db.onar_mesaj_odalari()
-                
-                return redirect(url_for('mesaj_odasi', oda_id=oda_id))
+    if islem == 'kabul':
+        # Önce mesaj odasını oluştur (ama henüz aktif değil)
+        oda_id = db.mesaj_odasi_olustur(
+            istek['ilan_id'],
+            istek['gonderen_id'],
+            istek['alici_id']
+        )
         
-        # Reddetme durumunda mesaj_istekleri sayfasına dön
-        return redirect(url_for('mesaj_istekleri'))
+        if oda_id:
+            # Her iki kullanıcı için onay kaydı oluştur
+            db.mesaj_odasi_onay_ekle(oda_id, istek['gonderen_id'])
+            db.mesaj_odasi_onay_ekle(oda_id, istek['alici_id'])
+            
+            # Ev sahibi otomatik onaylıyor
+            db.mesaj_odasi_onayla(oda_id, istek['alici_id'])
+            
+            # Çay gönderene bildirim gönder
+            bildirim_mesaji = f"{istek['alici_username']} mesaj isteğinizi kabul etti. Sohbet odasına katılmak ister misiniz?"
+            db.bildirim_ekle(
+                istek['gonderen_id'],
+                bildirim_mesaji,
+                f"/mesaj_odasi_onayla/{oda_id}"
+            )
+            
+            # Mesaj isteğini güncelle
+            db.mesaj_istegi_guncelle(istek_id, 'kabul')
+            
+            flash('İstek kabul edildi. Karşı tarafın onayını bekliyoruz.', 'success')
+        else:
+            flash('Mesaj odası oluşturulamadı', 'error')
     
-    flash('İşlem başarısız oldu', 'error')
+    elif islem == 'red':
+        db.mesaj_istegi_guncelle(istek_id, 'red')
+        flash('İstek reddedildi', 'info')
+    
     return redirect(url_for('mesaj_istekleri'))
+
+@app.route('/mesaj_odasi_onayla/<int:oda_id>')
+@login_required
+def mesaj_odasi_onayla(oda_id):
+    db = get_db()
+    
+    # Kullanıcının bu odada olup olmadığını kontrol et
+    oda = db.get_mesaj_odasi(oda_id)
+    if not oda or session['user_id'] not in [oda['kullanici1_id'], oda['kullanici2_id']]:
+        abort(403)
+    
+    # Onayı kaydet
+    if db.mesaj_odasi_onayla(oda_id, session['user_id']):
+        flash('Sohbet odasına katılım onaylandı', 'success')
+        
+        # Eğer her iki taraf da onayladıysa odayı aktif et
+        onaylar = db.mesaj_odasi_onay_durumu(oda_id)
+        if all(onaylar.values()):
+            # Burada gerekli başka işlemler yapılabilir
+            pass
+            
+        return redirect(url_for('mesaj_odasi', oda_id=oda_id))
+    else:
+        flash('Onay işlemi başarısız oldu', 'error')
+        return redirect(url_for('mesajlar'))
+        
 @app.route('/debug/room/<int:oda_id>')
 @login_required
 def debug_room(oda_id):
@@ -309,7 +321,30 @@ def debug_room(oda_id):
         'room': dict(oda),
         'messages': db.get_mesajlar(oda_id),
         'requests': db.get_mesaj_istekleri_for_room(oda_id)
-    })    
+    })
+
+@app.route('/bildirimler')
+@login_required
+def bildirimler():
+    db = get_db()
+    cursor = db.conn.cursor()
+    cursor.execute('''
+        SELECT * FROM bildirimler 
+        WHERE user_id = ?
+        ORDER BY tarih DESC
+    ''', (session['user_id'],))
+    bildirimler = [dict(row) for row in cursor.fetchall()]
+    
+    # Okundu olarak işaretle
+    cursor.execute('''
+        UPDATE bildirimler 
+        SET okundu = 1 
+        WHERE user_id = ? AND okundu = 0
+    ''', (session['user_id'],))
+    db.conn.commit()
+    
+    return render_template('bildirimler.html', bildirimler=bildirimler)
+    
 @app.route('/mesaj_odasi/<int:oda_id>')
 @login_required
 def mesaj_odasi(oda_id):
@@ -317,14 +352,21 @@ def mesaj_odasi(oda_id):
     oda = db.get_mesaj_odasi(oda_id)
     
     if not oda:
-        flash('Mesaj odası bulunamadı', 'error')
-        return redirect(url_for('mesajlar'))
+        abort(404)
     
     # Kullanıcının bu odada olup olmadığını kontrol et
     current_user_id = session['user_id']
     if current_user_id not in [oda['kullanici1_id'], oda['kullanici2_id']]:
-        flash('Bu mesaj odasına erişim izniniz yok', 'error')
-        return redirect(url_for('mesajlar'))
+        abort(403)
+    
+    # Onay durumunu kontrol et
+    onaylar = db.mesaj_odasi_onay_durumu(oda_id)
+    if not onaylar.get(current_user_id, False):
+        flash('Henüz bu sohbet odasına katılım onayı vermediniz', 'warning')
+        return redirect(url_for('bildirimler'))
+    
+    if not all(onaylar.values()):
+        flash('Karşı taraf henüz katılım onayı vermedi', 'info')
     
     # Mesajları getir
     mesajlar = db.get_mesajlar(oda_id)
@@ -339,6 +381,7 @@ def mesaj_odasi(oda_id):
                          oda=oda,
                          mesajlar=mesajlar,
                          diger_kullanici=diger_kullanici)
+                         
 @app.route('/begeni', methods=['POST'])
 @login_required
 def begeni_ekle():
@@ -460,10 +503,17 @@ def logout():
     return redirect(url_for('index'))
     
 @app.context_processor
-def utility_processor():
-    def file_exists(path):
-        return os.path.exists(path)
-    return dict(file_exists=file_exists)
+def inject_notification_count():
+    if 'user_id' in session:
+        db = get_db()
+        cursor = db.conn.cursor()
+        cursor.execute('''
+            SELECT COUNT(*) FROM bildirimler 
+            WHERE user_id = ? AND okundu = 0
+        ''', (session['user_id'],))
+        unread = cursor.fetchone()[0]
+        return {'unread_notifications': unread}
+    return {'unread_notifications': 0}
     
 @app.route('/debug_listings')
 def debug_listings():

@@ -10,16 +10,22 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <header>
         <h1>Ev Arkadaşı Bul</h1>
-        <nav>
-            <a href="{{ url_for('index') }}">Ana Sayfa</a>
-            {% if 'user_id' in session %}
-                <a href="{{ url_for('ilan_ver') }}">İlan Ver</a>
-    		<a href="{{ url_for('mesajlar') }}">Mesajlar</a>
-                <a href="{{ url_for('logout') }}">Çıkış Yap ({{ session['username'] }})</a>
-            {% else %}
-                <a href="{{ url_for('login') }}">Giriş Yap</a>
-            {% endif %}
-        </nav>
+			<nav>
+				<a href="{{ url_for('index') }}">Ana Sayfa</a>
+				{% if 'user_id' in session %}
+					<a href="{{ url_for('ilan_ver') }}">İlan Ver</a>
+					<a href="{{ url_for('mesajlar') }}">Mesajlar</a>
+					<a href="{{ url_for('bildirimler') }}">
+						Bildirimler
+						{% if unread_notifications > 0 %}
+						<span class="notification-badge">{{ unread_notifications }}</span>
+						{% endif %}
+					</a>
+					<a href="{{ url_for('logout') }}">Çıkış Yap ({{ session['username'] }})</a>
+				{% else %}
+					<a href="{{ url_for('login') }}">Giriş Yap</a>
+				{% endif %}
+			</nav>
     </header>
 
     <main>

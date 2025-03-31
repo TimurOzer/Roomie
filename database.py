@@ -24,7 +24,30 @@ class Database:
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         ''')
-        
+        # Bildirimler tablosu
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS bildirimler (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            mesaj TEXT NOT NULL,
+            link TEXT,
+            okundu BOOLEAN DEFAULT 0,
+            tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        ''')
+
+        # Mesaj odası onay tablosu
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mesaj_odasi_onay (
+            oda_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            onayli BOOLEAN DEFAULT 0,
+            PRIMARY KEY (oda_id, user_id),
+            FOREIGN KEY(oda_id) REFERENCES mesaj_odalari(id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        ''')        
         # database.py'de _create_tables fonksiyonunu güncelleyin
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS mesaj_istekleri (
@@ -161,7 +184,53 @@ class Database:
         except sqlite3.Error as e:
             print("İlan getirme hatası:", e)
             return []
+    def bildirim_ekle(self, user_id, mesaj, link=None):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                INSERT INTO bildirimler (user_id, mesaj, link)
+                VALUES (?, ?, ?)
+            ''', (user_id, mesaj, link))
+            self.conn.commit()
+            return cursor.lastrowid
+        except sqlite3.Error as e:
+            print("Bildirim ekleme hatası:", e)
+            return None
 
+    def mesaj_odasi_onay_ekle(self, oda_id, user_id):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                INSERT OR IGNORE INTO mesaj_odasi_onay (oda_id, user_id)
+                VALUES (?, ?)
+            ''', (oda_id, user_id))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print("Mesaj odası onay ekleme hatası:", e)
+            return False
+
+    def mesaj_odasi_onayla(self, oda_id, user_id):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                UPDATE mesaj_odasi_onay 
+                SET onayli = 1 
+                WHERE oda_id = ? AND user_id = ?
+            ''', (oda_id, user_id))
+            self.conn.commit()
+            return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            print("Mesaj odası onaylama hatası:", e)
+            return False
+
+    def mesaj_odasi_onay_durumu(self, oda_id):
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            SELECT user_id, onayli FROM mesaj_odasi_onay 
+            WHERE oda_id = ?
+        ''', (oda_id,))
+        return {row['user_id']: bool(row['onayli']) for row in cursor.fetchall()}
     def get_ilan(self, ilan_id):
         try:
             cursor = self.conn.cursor()
@@ -261,9 +330,13 @@ class Database:
     def get_mesaj_istegi(self, istek_id):
         cursor = self.conn.cursor()
         cursor.execute('''
-            SELECT mi.*, u.username as gonderen_username, i.baslik as ilan_baslik
+            SELECT mi.*, 
+                   u1.username as gonderen_username,
+                   u2.username as alici_username,
+                   i.baslik as ilan_baslik
             FROM mesaj_istekleri mi
-            JOIN users u ON mi.gonderen_id = u.id
+            JOIN users u1 ON mi.gonderen_id = u1.id
+            JOIN users u2 ON mi.alici_id = u2.id
             JOIN ilanlar i ON mi.ilan_id = i.id
             WHERE mi.id = ?
         ''', (istek_id,))

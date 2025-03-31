@@ -55,7 +55,7 @@
 			<div class="ilan-resim">
 				{% if ilan.resimler %}
 					{% set first_image = ilan.resimler.split(',')[0] %}
-					<img src="{{ url_for('static', filename='uploads/' + first_image) if file_exists('static/uploads/' + first_image) else url_for('static', filename='images/placeholder.jpg') }}" 
+					<img src="{{ url_for('static', filename='uploads/' + first_image) if ('static/uploads/' + first_image)|file_exists else url_for('static', filename='images/placeholder.jpg') }}" 
 						 alt="{{ ilan.baslik }}" class="ilan-resim-img">
 				{% else %}
 					<img src="{{ url_for('static', filename='images/placeholder.jpg') }}" 
