@@ -25,11 +25,11 @@
                     </div>
                     
 					<!-- YENİ HALİ (değiştirin) -->
-					<form class="istek-islem-form" data-istek-id="{{ istek.id }}">
+					<form method="POST" action="{{ url_for('mesaj_istek_islem') }}">
 						<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 						<input type="hidden" name="istek_id" value="{{ istek.id }}">
-						<button type="button" class="istek-kabul-btn" data-islem="kabul">Kabul Et</button>
-						<button type="button" class="istek-red-btn" data-islem="red">Reddet</button>
+						<button type="submit" name="islem" value="kabul" class="istek-kabul-btn">Kabul Et</button>
+						<button type="submit" name="islem" value="red" class="istek-red-btn">Reddet</button>
 					</form>
 
                 </div>

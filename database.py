@@ -8,7 +8,8 @@ class Database:
         self.conn = sqlite3.connect(self.db_path)
         self.conn.row_factory = sqlite3.Row
         self._create_tables()
-
+        self.upgrade_database()  # Bu satırı ekleyin
+        
     def _create_tables(self):
         cursor = self.conn.cursor()
         
@@ -24,7 +25,7 @@ class Database:
         )
         ''')
         
-        # Mesajlaşma istekleri tablosu
+        # database.py'de _create_tables fonksiyonunu güncelleyin
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS mesaj_istekleri (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,10 +34,12 @@ class Database:
             ilan_id INTEGER NOT NULL,
             tip TEXT NOT NULL,  -- 'cay' veya 'kahve'
             durum TEXT NOT NULL DEFAULT 'beklemede',  -- 'beklemede', 'kabul', 'red'
+            oda_id INTEGER,  -- Yeni eklenen sütun
             tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(gonderen_id) REFERENCES users(id),
             FOREIGN KEY(alici_id) REFERENCES users(id),
             FOREIGN KEY(ilan_id) REFERENCES ilanlar(id),
+            FOREIGN KEY(oda_id) REFERENCES mesaj_odalari(id),
             UNIQUE(gonderen_id, alici_id, ilan_id)
         )
         ''')
@@ -265,15 +268,20 @@ class Database:
             WHERE mi.id = ?
         ''', (istek_id,))
         return cursor.fetchone()
-        
+    def get_user_by_id(self, user_id):
+        cursor = self.conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+        return cursor.fetchone()        
     def get_mesaj_istekleri(self, kullanici_id, durum=None):
         try:
             cursor = self.conn.cursor()
             query = '''
-                SELECT mi.*, u.username as gonderen_username, i.baslik as ilan_baslik
+                SELECT mi.*, u.username as gonderen_username, 
+                       i.baslik as ilan_baslik, mo.id as oda_id
                 FROM mesaj_istekleri mi
                 JOIN users u ON mi.gonderen_id = u.id
                 JOIN ilanlar i ON mi.ilan_id = i.id
+                LEFT JOIN mesaj_odalari mo ON mi.oda_id = mo.id
                 WHERE mi.alici_id = ?
             '''
             params = [kullanici_id]
@@ -293,7 +301,20 @@ class Database:
     # MESAJ ODALARI
     def mesaj_odasi_olustur(self, ilan_id, kullanici1_id, kullanici2_id):
         try:
+            # Önce var olan odayı kontrol et
             cursor = self.conn.cursor()
+            cursor.execute('''
+                SELECT id FROM mesaj_odalari 
+                WHERE ilan_id = ? AND 
+                ((kullanici1_id = ? AND kullanici2_id = ?) OR 
+                (kullanici1_id = ? AND kullanici2_id = ?))
+            ''', (ilan_id, kullanici1_id, kullanici2_id, kullanici2_id, kullanici1_id))
+            
+            existing = cursor.fetchone()
+            if existing:
+                return existing['id']  # Var olan oda ID'sini döndür
+            
+            # Yeni oda oluştur
             cursor.execute('''
                 INSERT INTO mesaj_odalari (ilan_id, kullanici1_id, kullanici2_id)
                 VALUES (?, ?, ?)
@@ -375,7 +396,29 @@ class Database:
             return cursor
         except sqlite3.Error as e:
             print("SQL execute hatası:", e)
-            return None            
+            return None
+    # Database sınıfına ekleyin
+    def get_mesaj_odasi_by_users(self, ilan_id, user1_id, user2_id):
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            SELECT id FROM mesaj_odalari 
+            WHERE ilan_id = ? AND 
+            ((kullanici1_id = ? AND kullanici2_id = ?) OR 
+            (kullanici1_id = ? AND kullanici2_id = ?))
+        ''', (ilan_id, user1_id, user2_id, user2_id, user1_id))
+        return cursor.fetchone()
+    def upgrade_database(self):
+        try:
+            cursor = self.conn.cursor()
+            # Tabloda oda_id sütunu var mı kontrol et
+            cursor.execute("PRAGMA table_info(mesaj_istekleri)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if 'oda_id' not in columns:
+                cursor.execute('ALTER TABLE mesaj_istekleri ADD COLUMN oda_id INTEGER REFERENCES mesaj_odalari(id)')
+                self.conn.commit()
+                print("Veritabanı şeması güncellendi: oda_id eklendi")
+        except sqlite3.Error as e:
+            print("Veritabanı güncelleme hatası:", e)        
     # DİĞER METODLAR
     def close(self):
         if hasattr(self, 'conn') and self.conn:

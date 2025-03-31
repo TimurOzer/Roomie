@@ -235,19 +235,30 @@ def mesaj_istek_islem():
                 istek['gonderen_id'],
                 istek['alici_id']
             )
-            print(f"Oluşturulan mesaj odası ID: {oda_id}")
+            print(f"Mesaj odası ID: {oda_id}")
+            
+            if oda_id:
+                cursor = db.conn.cursor()
+                cursor.execute(
+                    "UPDATE mesaj_istekleri SET durum = ?, oda_id = ? WHERE id = ?",
+                    (islem, oda_id, istek_id)
+                )
+                db.conn.commit()
+                
+                # JSON yerine direkt yönlendirme yap
+                return redirect(url_for('mesaj_odasi', oda_id=oda_id))
         
-        return jsonify({'success': True})
-    else:
-        return jsonify({'success': False, 'error': 'Veritabanı güncelleme başarısız'})
+        # Reddetme durumunda mesaj_istekleri sayfasına dön
+        return redirect(url_for('mesaj_istekleri'))
     
+    flash('İşlem başarısız oldu', 'error')
+    return redirect(url_for('mesaj_istekleri'))
 @app.route('/mesaj_odasi/<int:oda_id>')
 @login_required
 def mesaj_odasi(oda_id):
     db = get_db()
     oda = db.get_mesaj_odasi(oda_id)
     
-    # Daha basit kontrol
     if not oda:
         flash('Mesaj odası bulunamadı', 'error')
         return redirect(url_for('mesajlar'))
@@ -257,7 +268,8 @@ def mesaj_odasi(oda_id):
         return redirect(url_for('mesajlar'))
     
     mesajlar = db.get_mesajlar(oda_id)
-    diger_kullanici = db.get_user(oda['kullanici1_id']) if oda['kullanici2_id'] == session['user_id'] else db.get_user(oda['kullanici2_id'])
+    diger_kullanici_id = oda['kullanici1_id'] if oda['kullanici2_id'] == session['user_id'] else oda['kullanici2_id']
+    diger_kullanici = db.get_user_by_id(diger_kullanici_id)
     
     return render_template('mesaj_odasi.html',
                          oda=oda,
