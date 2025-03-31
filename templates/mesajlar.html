@@ -20,9 +20,9 @@
                         <span class="username">{{ begeni.username }}</span>
                         <span class="ilan-baslik">{{ begeni.ilan_baslik }}</span>
                     </div>
-					<a href="{{ url_for('mesaj_odasi', oda_id=begeni.oda_id) }}" 
-					   class="btn btn-primary {% if not begeni.oda_id %}disabled{% endif %}">
-						{% if begeni.oda_id %}Mesajlaş{% else %}Onay Bekliyor{% endif %}
+					<a href="{{ url_for('mesaj_odasi', oda_id=begeni.oda_id) if begeni.oda_id else '#' }}"
+					   class="btn {% if begeni.oda_id %}btn-primary{% else %}btn-secondary disabled{% endif %}">
+					   {% if begeni.oda_id %}Mesajlaş{% else %}Onay Bekliyor{% endif %}
 					</a>
                 </div>
             </div>

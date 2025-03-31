@@ -410,8 +410,53 @@ class Database:
                 self.conn.commit()
                 print("Veritabanı şeması güncellendi: oda_id eklendi")
         except sqlite3.Error as e:
-            print("Veritabanı güncelleme hatası:", e)        
+            print("Veritabanı güncelleme hatası:", e)  
+    # database.py'ye bu fonksiyonu ekleyin ve çağırın
+    def debug_mesaj_odalari(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM mesaj_odalari")
+        return cursor.fetchall()          
     # DİĞER METODLAR
+    def get_mesaj_istekleri_for_room(self, oda_id):
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            SELECT * FROM mesaj_istekleri WHERE oda_id = ?
+        ''', (oda_id,))
+        return [dict(row) for row in cursor.fetchall()]
+    def onar_mesaj_odalari(self):
+        try:
+            cursor = self.conn.cursor()
+            # Eksik oda_id'leri olan istekleri bul
+            cursor.execute("""
+                SELECT mi.id, mi.gonderen_id, mi.alici_id, mi.ilan_id
+                FROM mesaj_istekleri mi
+                WHERE mi.durum = 'kabul' AND mi.oda_id IS NULL
+            """)
+            eksikler = cursor.fetchall()
+            
+            for eksik in eksikler:
+                # Önce var olan bir oda olup olmadığını kontrol et
+                oda = self.get_mesaj_odasi_by_users(eksik['ilan_id'], eksik['gonderen_id'], eksik['alici_id'])
+                
+                if oda:
+                    oda_id = oda['id']
+                else:
+                    # Yeni oda oluştur
+                    oda_id = self.mesaj_odasi_olustur(
+                        eksik['ilan_id'],
+                        eksik['gonderen_id'],
+                        eksik['alici_id']
+                    )
+                
+                if oda_id:
+                    cursor.execute("""
+                        UPDATE mesaj_istekleri SET oda_id = ? WHERE id = ?
+                    """, (oda_id, eksik['id']))
+            
+            self.conn.commit()
+        except sqlite3.Error as e:
+            print("Mesaj odası onarım hatası:", e)
+            self.conn.rollback()
     def close(self):
         if hasattr(self, 'conn') and self.conn:
             self.conn.close()

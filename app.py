@@ -255,14 +255,27 @@ def mesaj_istek_islem():
     
     if rowcount > 0:
         if islem == 'kabul':
-            oda_id = db.mesaj_odasi_olustur(
-                istek['ilan_id'],
-                istek['gonderen_id'],
-                istek['alici_id']
-            )
+            # Kullanıcı ID'lerini doğru sırayla verin
+            gonderen_id = istek['gonderen_id']  # Çay gönderen
+            alici_id = istek['alici_id']        # Ev sahibi
+            
+            # Önce var olan bir oda olup olmadığını kontrol et
+            oda = db.get_mesaj_odasi_by_users(istek['ilan_id'], gonderen_id, alici_id)
+            
+            if oda:
+                oda_id = oda['id']
+            else:
+                # Yeni oda oluştur
+                oda_id = db.mesaj_odasi_olustur(
+                    istek['ilan_id'],
+                    gonderen_id,  # Önce gönderen
+                    alici_id      # Sonra alıcı
+                )
+            
             print(f"Mesaj odası ID: {oda_id}")
             
             if oda_id:
+                # Mesaj isteğini güncelle
                 cursor = db.conn.cursor()
                 cursor.execute(
                     "UPDATE mesaj_istekleri SET durum = ?, oda_id = ? WHERE id = ?",
@@ -270,7 +283,9 @@ def mesaj_istek_islem():
                 )
                 db.conn.commit()
                 
-                # JSON yerine direkt yönlendirme yap
+                # Onarıcıyı çalıştır (güvenlik için)
+                db.onar_mesaj_odalari()
+                
                 return redirect(url_for('mesaj_odasi', oda_id=oda_id))
         
         # Reddetme durumunda mesaj_istekleri sayfasına dön
@@ -278,6 +293,23 @@ def mesaj_istek_islem():
     
     flash('İşlem başarısız oldu', 'error')
     return redirect(url_for('mesaj_istekleri'))
+@app.route('/debug/room/<int:oda_id>')
+@login_required
+def debug_room(oda_id):
+    db = get_db()
+    oda = db.get_mesaj_odasi(oda_id)
+    if not oda:
+        return "Room not found", 404
+    
+    # Check permissions
+    if session['user_id'] not in [oda['kullanici1_id'], oda['kullanici2_id']]:
+        abort(403)
+    
+    return jsonify({
+        'room': dict(oda),
+        'messages': db.get_mesajlar(oda_id),
+        'requests': db.get_mesaj_istekleri_for_room(oda_id)
+    })    
 @app.route('/mesaj_odasi/<int:oda_id>')
 @login_required
 def mesaj_odasi(oda_id):
@@ -288,14 +320,20 @@ def mesaj_odasi(oda_id):
         flash('Mesaj odası bulunamadı', 'error')
         return redirect(url_for('mesajlar'))
     
-    # İki kullanıcıdan biri olup olmadığını kontrol et
-    if session['user_id'] not in (oda['kullanici1_id'], oda['kullanici2_id']):
+    # Kullanıcının bu odada olup olmadığını kontrol et
+    current_user_id = session['user_id']
+    if current_user_id not in [oda['kullanici1_id'], oda['kullanici2_id']]:
         flash('Bu mesaj odasına erişim izniniz yok', 'error')
         return redirect(url_for('mesajlar'))
     
+    # Mesajları getir
     mesajlar = db.get_mesajlar(oda_id)
-    diger_kullanici_id = oda['kullanici1_id'] if oda['kullanici2_id'] == session['user_id'] else oda['kullanici2_id']
-    diger_kullanici = db.get_user_by_id(diger_kullanici_id)
+    
+    # Diğer kullanıcının bilgilerini getir
+    if current_user_id == oda['kullanici1_id']:
+        diger_kullanici = db.get_user_by_id(oda['kullanici2_id'])
+    else:
+        diger_kullanici = db.get_user_by_id(oda['kullanici1_id'])
     
     return render_template('mesaj_odasi.html',
                          oda=oda,
@@ -342,7 +380,13 @@ def begeni_ekle():
     except Exception as e:
         print("Hata:", str(e))
         return jsonify({'success': False, 'error': str(e)}), 500
-        
+
+@app.route('/debug/odalari')
+def debug_odalari():
+    db = get_db()
+    odalar = db.debug_mesaj_odalari()
+    return jsonify([dict(oda) for oda in odalar])
+    
 @app.route('/mesajlar')
 @login_required
 def mesajlar():

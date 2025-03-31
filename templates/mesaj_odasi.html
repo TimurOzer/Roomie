@@ -1,5 +1,14 @@
 {% extends "base.html" %}
-
+<!-- Add this at the top of your template to debug -->
+{% if debug %}
+<div class="debug-info" style="background: #f8f9fa; padding: 10px; margin-bottom: 20px;">
+    <h4>Debug Information:</h4>
+    <p>Oda ID: {{ oda.id }}</p>
+    <p>Kullanıcı1: {{ oda.kullanici1_id }} ({{ diger_kullanici.username if session['user_id'] == oda.kullanici1_id else 'You' }})</p>
+    <p>Kullanıcı2: {{ oda.kullanici2_id }} ({{ diger_kullanici.username if session['user_id'] == oda.kullanici2_id else 'You' }})</p>
+    <p>İlan ID: {{ oda.ilan_id }}</p>
+</div>
+{% endif %}
 {% block content %}
 <section class="mesaj-odasi">
     <div class="mesaj-header">
