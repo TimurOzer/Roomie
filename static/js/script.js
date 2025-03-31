@@ -168,3 +168,52 @@ document.addEventListener('click', function(e) {
         });
     }
 });
+
+// Mesaj istekleri sayfası işlemleri - GÜNCELLENMİŞ VERSİYON
+document.querySelectorAll('.istek-kabul-btn, .istek-red-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const form = this.closest('.istek-islem-form');
+        const istekId = form.dataset.istekId;
+        const islem = this.dataset.islem; // 'kabul' veya 'red'
+        const csrfToken = form.querySelector('input[name="csrf_token"]').value;
+
+        fetch("{{ url_for('mesaj_istek_islem') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            body: `istek_id=${istekId}&islem=${islem}&csrf_token=${csrfToken}`
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network error');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const istekKarti = form.closest('.istek-karti');
+                if (islem === 'kabul') {
+                    istekKarti.innerHTML = `
+                        <div class="alert alert-success">
+                            İstek kabul edildi. Yönlendiriliyorsunuz...
+                        </div>
+                    `;
+                    // 2 saniye sonra mesajlaşma sayfasına yönlendir
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('mesajlar') }}";
+                    }, 2000);
+                } else {
+                    istekKarti.style.opacity = '0.5';
+                    form.innerHTML = '<div class="alert alert-warning">İstek reddedildi</div>';
+                }
+            } else {
+                alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+            }
+        })
+        .catch(error => {
+            console.error('Hata:', error);
+            alert('İşlem sırasında hata oluştu');
+        });
+    });
+});

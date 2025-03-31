@@ -108,7 +108,10 @@ def ilan_detay(ilan_id):
 def ilan_ver():
     if request.method == 'POST':
         # CSRF kontrolü
+        print("Gelen CSRF Token:", request.form.get('csrf_token'))  # Debug
+        print("Session CSRF Token:", session.get('_csrf_token'))    # Debug
         if request.form.get('csrf_token') != session.get('_csrf_token'):
+            print("CSRF Token Eşleşmiyor!")  # Debug
             abort(403)
         
         # Form verilerini al
@@ -198,43 +201,58 @@ def mesaj_istekleri():
 @app.route('/mesaj_istek_islem', methods=['POST'])
 @login_required
 def mesaj_istek_islem():
-    istek_id = request.form.get('istek_id')
-    islem = request.form.get('islem')  # 'kabul' veya 'red'
+    # Debug için tüm form verilerini yazdır
+    print("Form verileri:", request.form)
     
-    if not istek_id or islem not in ['kabul', 'red']:
-        return jsonify({'success': False, 'error': 'Geçersiz istek'}), 400
+    # CSRF kontrolü
+    if request.form.get('csrf_token') != session.get('_csrf_token'):
+        print("CSRF token eşleşmiyor!")
+        abort(403)
+    
+    istek_id = request.form.get('istek_id')
+    islem = request.form.get('islem')
     
     db = get_db()
-    
-    # Önce isteği alıp kullanıcının kendi isteği olup olmadığını kontrol et
     istek = db.get_mesaj_istegi(istek_id)
-    if not istek or istek['alici_id'] != session['user_id']:
-        return jsonify({'success': False, 'error': 'Yetkisiz işlem'}), 403
     
-    # İsteği güncelle
-    if db.mesaj_istegi_guncelle(istek_id, islem) > 0:
-        # Eğer kabul edildiyse mesaj odası oluştur
+    # Debug çıktıları
+    print(f"İstek ID: {istek_id}, İşlem: {islem}")
+    print(f"İstek Detay: {istek}")
+    print(f"Session User ID: {session['user_id']}")
+    
+    if not istek or istek['alici_id'] != session['user_id']:
+        print("Yetkisiz işlem denemesi!")
+        abort(403)
+    
+    # Veritabanı güncellemesini kontrol et
+    rowcount = db.mesaj_istegi_guncelle(istek_id, islem)
+    print(f"Etkilenen satır sayısı: {rowcount}")
+    
+    if rowcount > 0:
         if islem == 'kabul':
             oda_id = db.mesaj_odasi_olustur(
                 istek['ilan_id'],
                 istek['gonderen_id'],
                 istek['alici_id']
             )
-            if not oda_id:
-                return jsonify({'success': False, 'error': 'Mesaj odası oluşturulamadı'}), 500
+            print(f"Oluşturulan mesaj odası ID: {oda_id}")
         
         return jsonify({'success': True})
     else:
-        return jsonify({'success': False, 'error': 'İşlem yapılamadı'}), 500
-
+        return jsonify({'success': False, 'error': 'Veritabanı güncelleme başarısız'})
+    
 @app.route('/mesaj_odasi/<int:oda_id>')
 @login_required
 def mesaj_odasi(oda_id):
     db = get_db()
     oda = db.get_mesaj_odasi(oda_id)
     
-    # Kullanıcının bu odada olup olmadığını kontrol et
-    if not oda or (session['user_id'] not in [oda['kullanici1_id'], oda['kullanici2_id']]):
+    # Daha basit kontrol
+    if not oda:
+        flash('Mesaj odası bulunamadı', 'error')
+        return redirect(url_for('mesajlar'))
+    
+    if session['user_id'] not in (oda['kullanici1_id'], oda['kullanici2_id']):
         flash('Bu mesaj odasına erişim izniniz yok', 'error')
         return redirect(url_for('mesajlar'))
     
@@ -245,28 +263,7 @@ def mesaj_odasi(oda_id):
                          oda=oda,
                          mesajlar=mesajlar,
                          diger_kullanici=diger_kullanici)
-
-@app.route('/mesaj_gonder', methods=['POST'])
-@login_required
-def mesaj_gonder():
-    oda_id = request.form.get('oda_id')
-    mesaj = request.form.get('mesaj', '').strip()
-    
-    if not oda_id or not mesaj:
-        return jsonify({'success': False, 'error': 'Geçersiz istek'}), 400
-    
-    db = get_db()
-    oda = db.get_mesaj_odasi(oda_id)
-    
-    # Kullanıcının bu odada olup olmadığını kontrol et
-    if not oda or (session['user_id'] not in [oda['kullanici1_id'], oda['kullanici2_id']]):
-        return jsonify({'success': False, 'error': 'Yetkisiz işlem'}), 403
-    
-    # Mesajı kaydet
-    if db.mesaj_ekle(oda_id, session['user_id'], mesaj):
-        return jsonify({'success': True})
-    else:
-        return jsonify({'success': False, 'error': 'Mesaj gönderilemedi'}), 500    
+        
 @app.route('/begeni', methods=['POST'])
 @login_required
 def begeni_ekle():
@@ -313,15 +310,43 @@ def begeni_ekle():
 @login_required
 def mesajlar():
     db = get_db()
-    begeniler = db.get_begeniler(kullanici_id=session['user_id'])
     
-    # Kahve ve çay gönderenleri ayır
+    # Ev sahibi mi kontrolü (düzeltilmiş versiyon)
+    cursor = db.conn.cursor()
+    cursor.execute(
+        "SELECT COUNT(*) FROM ilanlar WHERE user_id = ?",
+        (session['user_id'],)
+    )
+    is_ev_sahibi = cursor.fetchone()[0] > 0
+    
+    # Beğenileri al
+    begeniler = []
+    cursor.execute('''
+        SELECT b.*, u.username, i.baslik as ilan_baslik,
+               mi.durum as istek_durumu, mo.id as oda_id
+        FROM begeniler b
+        JOIN users u ON b.gonderen_id = u.id
+        JOIN ilanlar i ON b.ilan_id = i.id
+        LEFT JOIN mesaj_istekleri mi ON 
+            mi.ilan_id = b.ilan_id AND 
+            mi.gonderen_id = b.gonderen_id
+        LEFT JOIN mesaj_odalari mo ON 
+            (mo.kullanici1_id = b.gonderen_id AND mo.kullanici2_id = ?) OR
+            (mo.kullanici2_id = b.gonderen_id AND mo.kullanici1_id = ?)
+        WHERE i.user_id = ? OR b.gonderen_id = ?
+        ORDER BY b.tarih DESC
+    ''', (session['user_id'], session['user_id'], session['user_id'], session['user_id']))
+    
+    begeniler = [dict(row) for row in cursor.fetchall()]
+    
+    # Ayırma işlemi
     kahve_gonderenler = [b for b in begeniler if b['tip'] == 'kahve']
     cay_gonderenler = [b for b in begeniler if b['tip'] == 'cay']
     
-    return render_template('mesajlar.html', 
-                         kahve_gonderenler=kahve_gonderenler,
-                         cay_gonderenler=cay_gonderenler)
+    return render_template('mesajlar.html',
+                        kahve_gonderenler=kahve_gonderenler,
+                        cay_gonderenler=cay_gonderenler,
+                        is_ev_sahibi=is_ev_sahibi)
                          
 @app.route('/register', methods=['GET', 'POST'])
 def register():

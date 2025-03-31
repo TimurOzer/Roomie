@@ -7,7 +7,7 @@
         <p class="ilan-bilgi">İlan: {{ oda.ilan_baslik }}</p>
     </div>
     
-    <div class="mesajlar-container">
+    <div class="mesajlar-container" id="mesajlar-container">
         {% for mesaj in mesajlar %}
         <div class="mesaj {% if mesaj.gonderen_id == session['user_id'] %}gonderen{% else %}alici{% endif %}">
             <div class="mesaj-icerik">
@@ -18,9 +18,59 @@
         {% endfor %}
     </div>
     
-    <form class="mesaj-gonder-form" data-oda-id="{{ oda.id }}">
-        <input type="text" name="mesaj" placeholder="Mesajınızı yazın..." required>
+    <form class="mesaj-gonder-form" id="mesaj-form" data-oda-id="{{ oda.id }}">
+        <input type="text" name="mesaj" id="mesaj-input" placeholder="Mesajınızı yazın..." required>
         <button type="submit">Gönder</button>
     </form>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('mesaj-form');
+    const input = document.getElementById('mesaj-input');
+    const container = document.getElementById('mesajlar-container');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const odaId = this.dataset.odaId;
+        const mesaj = input.value.trim();
+        
+        if (!mesaj) return;
+        
+        fetch('/mesaj_gonder', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            },
+            body: `oda_id=${odaId}&mesaj=${encodeURIComponent(mesaj)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Yeni mesajı ekrana ekle
+                const mesajDiv = document.createElement('div');
+                mesajDiv.className = 'mesaj gonderen';
+                mesajDiv.innerHTML = `
+                    <div class="mesaj-icerik">
+                        <p>${mesaj}</p>
+                        <span class="mesaj-tarih">Şimdi</span>
+                    </div>
+                `;
+                container.appendChild(mesajDiv);
+                
+                // Input'u temizle ve scroll'u en alta indir
+                input.value = '';
+                container.scrollTop = container.scrollHeight;
+            } else {
+                alert('Mesaj gönderilemedi: ' + (data.error || 'Bilinmeyen hata'));
+            }
+        })
+        .catch(error => {
+            console.error('Hata:', error);
+            alert('Bir hata oluştu');
+        });
+    });
+});
+</script>
 {% endblock %}

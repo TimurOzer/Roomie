@@ -24,12 +24,14 @@
                         <span class="ilan-baslik">{{ istek.ilan_baslik }}</span>
                     </div>
                     
-                    <div class="istek-actions">
-                        <form class="istek-kabul-form" data-istek-id="{{ istek.id }}">
-                            <button type="button" class="istek-kabul-btn">Kabul Et</button>
-                            <button type="button" class="istek-red-btn">Reddet</button>
-                        </form>
-                    </div>
+					<!-- YENİ HALİ (değiştirin) -->
+					<form class="istek-islem-form" data-istek-id="{{ istek.id }}">
+						<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+						<input type="hidden" name="istek_id" value="{{ istek.id }}">
+						<button type="button" class="istek-kabul-btn" data-islem="kabul">Kabul Et</button>
+						<button type="button" class="istek-red-btn" data-islem="red">Reddet</button>
+					</form>
+
                 </div>
             </div>
             {% endfor %}
@@ -59,9 +61,11 @@
                         <span class="ilan-baslik">{{ istek.ilan_baslik }}</span>
                     </div>
                     
+                    {% if istek.oda_id %}
                     <a href="{{ url_for('mesaj_odasi', oda_id=istek.oda_id) }}" class="mesajlas-btn">
                         Mesajlaş
                     </a>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}

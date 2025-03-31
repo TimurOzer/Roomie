@@ -188,14 +188,18 @@ class Database:
             print("Beğeni ekleme hatası:", e)
             return None
 
-    def get_begeniler(self, ilan_id=None, kullanici_id=None):
+    def get_begeniler(self, ilan_id=None, kullanici_id=None, is_ev_sahibi=False):
         try:
             cursor = self.conn.cursor()
             query = '''
-                SELECT b.*, u.username, i.baslik as ilan_baslik 
+                SELECT b.*, u.username, i.baslik as ilan_baslik,
+                       mi.durum as istek_durumu
                 FROM begeniler b
                 JOIN users u ON b.gonderen_id = u.id
                 JOIN ilanlar i ON b.ilan_id = i.id
+                LEFT JOIN mesaj_istekleri mi ON 
+                    mi.ilan_id = b.ilan_id AND 
+                    mi.gonderen_id = b.gonderen_id
             '''
             params = []
             
@@ -203,15 +207,18 @@ class Database:
             if ilan_id:
                 conditions.append("b.ilan_id = ?")
                 params.append(ilan_id)
+            
             if kullanici_id:
-                conditions.append("i.user_id = ?")
+                if is_ev_sahibi:
+                    conditions.append("i.user_id = ?")  # Ev sahibinin ilanları
+                else:
+                    conditions.append("b.gonderen_id = ?")  # Gönderenin beğenileri
                 params.append(kullanici_id)
             
             if conditions:
                 query += " WHERE " + " AND ".join(conditions)
             
-            query += " ORDER BY b.tip DESC, b.tarih DESC"
-            
+            query += " ORDER BY b.tarih DESC"
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
         except sqlite3.Error as e:
@@ -239,16 +246,26 @@ class Database:
         try:
             cursor = self.conn.cursor()
             cursor.execute('''
-                UPDATE mesaj_istekleri 
-                SET durum = ?
-                WHERE id = ?
+                UPDATE mesaj_istekleri SET durum = ? WHERE id = ?
             ''', (durum, istek_id))
             self.conn.commit()
+            print(f"Güncellenen istek: {istek_id}, yeni durum: {durum}")
             return cursor.rowcount
         except sqlite3.Error as e:
             print("Mesaj isteği güncelleme hatası:", e)
-            return None
-
+            return 0
+            
+    def get_mesaj_istegi(self, istek_id):
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            SELECT mi.*, u.username as gonderen_username, i.baslik as ilan_baslik
+            FROM mesaj_istekleri mi
+            JOIN users u ON mi.gonderen_id = u.id
+            JOIN ilanlar i ON mi.ilan_id = i.id
+            WHERE mi.id = ?
+        ''', (istek_id,))
+        return cursor.fetchone()
+        
     def get_mesaj_istekleri(self, kullanici_id, durum=None):
         try:
             cursor = self.conn.cursor()
@@ -351,7 +368,14 @@ class Database:
             return cursor.fetchone()
         except sqlite3.Error:
             return None
-            
+    def execute(self, query, params=()):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(query, params)
+            return cursor
+        except sqlite3.Error as e:
+            print("SQL execute hatası:", e)
+            return None            
     # DİĞER METODLAR
     def close(self):
         if hasattr(self, 'conn') and self.conn:

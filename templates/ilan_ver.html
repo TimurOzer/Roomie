@@ -4,6 +4,7 @@
 <section class="ilan-verme">
     <h2>Ev Arkadaşı İlanı Ver</h2>
     <form method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">	
         <div class="form-group">
             <label for="baslik">İlan Başlığı</label>
             <input type="text" id="baslik" name="baslik" required>

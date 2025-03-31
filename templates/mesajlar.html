@@ -20,9 +20,10 @@
                         <span class="username">{{ begeni.username }}</span>
                         <span class="ilan-baslik">{{ begeni.ilan_baslik }}</span>
                     </div>
-                    <button class="mesaj-gonder-btn" data-gonderen-id="{{ begeni.gonderen_id }}" data-ilan-id="{{ begeni.ilan_id }}">
-                        Mesaj Gönder
-                    </button>
+                    <a href="{{ url_for('mesaj_odasi', oda_id=begeni.oda_id) if begeni.oda_id else '#' }}" 
+                       class="mesajlas-btn {% if not begeni.oda_id %}disabled{% endif %}">
+                        {% if begeni.oda_id %}Mesajlaş{% else %}Onay Bekliyor{% endif %}
+                    </a>
                 </div>
             </div>
             {% endfor %}
@@ -33,29 +34,53 @@
         
         <h3>Çay Gönderenler <span class="badge">{{ cay_gonderenler|length }}</span></h3>
         
-        {% if cay_gonderenler %}
-        <div class="begeni-grid">
-            {% for begeni in cay_gonderenler %}
-            <div class="begeni-karti cay">
-                <div class="begeni-header">
-                    <span class="begeni-tip">🍵 Çay</span>
-                    <span class="begeni-tarih">{{ begeni.tarih|datetimeformat }}</span>
-                </div>
-                <div class="begeni-icerik">
-                    <div class="kullanici-bilgi">
-                        <span class="username">{{ begeni.username }}</span>
-                        <span class="ilan-baslik">{{ begeni.ilan_baslik }}</span>
-                    </div>
-                    <button class="mesaj-gonder-btn" data-gonderen-id="{{ begeni.gonderen_id }}" data-ilan-id="{{ begeni.ilan_id }}">
-                        Mesaj Gönder
-                    </button>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="bos-liste">Henüz çay gönderen yok.</p>
-        {% endif %}
+		<!-- Çay Gönderenler bölümü -->
+		{% if cay_gonderenler %}
+		<table>
+			{% for begeni in cay_gonderenler %}
+			<tr>
+				<td>🍵 Çay</td>
+				<td>{{ begeni.tarih|datetimeformat }}</td>
+			</tr>
+			<tr>
+				<td colspan="2">{{ begeni.username }}</td>
+			</tr>
+			<tr>
+				<td colspan="2">{{ begeni.ilan_baslik }}</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+					{% if is_ev_sahibi %}
+						<!-- EV SAHİBİ GÖRÜNÜMÜ -->
+						{% if begeni.istek_durumu == 'beklemede' %}
+						<form method="POST" action="{{ url_for('mesaj_istek_islem') }}">
+							<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+							<input type="hidden" name="istek_id" value="{{ begeni.id }}">
+							<button type="submit" name="islem" value="kabul" class="btn btn-success">Kabul Et</button>
+							<button type="submit" name="islem" value="red" class="btn btn-danger">Reddet</button>
+						</form>
+						{% elif begeni.istek_durumu == 'kabul' and begeni.oda_id %}
+						<a href="{{ url_for('mesaj_odasi', oda_id=begeni.oda_id) }}" class="btn btn-primary">
+							Mesajlaş
+						</a>
+						{% endif %}
+					{% else %}
+						<!-- KULLANICI GÖRÜNÜMÜ -->
+						{% if begeni.istek_durumu == 'beklemede' %}
+						<span class="text-muted">Onay Bekliyor</span>
+						{% elif begeni.istek_durumu == 'kabul' and begeni.oda_id %}
+						<a href="{{ url_for('mesaj_odasi', oda_id=begeni.oda_id) }}" class="btn btn-primary">
+							Mesajlaş
+						</a>
+						{% endif %}
+					{% endif %}
+				</td>
+			</tr>
+			{% endfor %}
+		</table>
+		{% else %}
+		<p>Henüz çay gönderen yok.</p>
+		{% endif %}
     </div>
 </section>
 {% endblock %}
