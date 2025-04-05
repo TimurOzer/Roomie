@@ -9,27 +9,47 @@
 <body>
     <div class="container">
         <h2>Mevcut İlanlar</h2>
-        <ul id="post-list">
-            {% for post in posts %}
-                <li>{{ post.content }}</li>
-            {% endfor %}
-        </ul>
+		<ul id="post-list">
+			{% for post in posts %}
+				<li>
+					<strong>{{ post.user }}</strong> - {{ post.timestamp }}<br>
+					{{ post.content }}<br>
+					<em>{{ post.address }}</em><br>
+					{% if post.image %}
+						<img src="{{ post.image }}" width="150"><br>
+					{% endif %}
+					{% if post.budget %}Bütçe: ₺{{ post.budget }}<br>{% endif %}
+					{% if post.no_smoking %}🚭 Sigara kullanmıyor<br>{% endif %}
+					{% if post.no_pets %}🐾 Evcil hayvanı yok<br>{% endif %}
+					{% if post.only_female %}👩 Kadın ev arkadaşı arıyor<br>{% endif %}
+					{% if post.only_male %}👨 Erkek ev arkadaşı arıyor<br>{% endif %}
+					<hr>
+				</li>
+			{% endfor %}
+		</ul>
         <a href="{{ url_for('post') }}">Yeni İlan Ver</a>
     </div>
 
     <script>
-        const socket = io();
+		const socket = io(); // Socket bağlantısını başlat
+		socket.on('new_post', function(data) {
+			const ul = document.getElementById('post-list');
+			const li = document.createElement('li');
 
-        socket.on('connect', () => {
-            console.log('Socket bağlantısı kuruldu!');
-        });
-
-        socket.on('new_post', function(data) {
-            const ul = document.getElementById('post-list');
-            const li = document.createElement('li');
-            li.textContent = data.content;
-            ul.appendChild(li);
-        });
+			li.innerHTML = `
+				<strong>${data.user}</strong> - ${data.timestamp}<br>
+				${data.content}<br>
+				<em>${data.address}</em><br>
+				${data.image ? `<img src="${data.image}" width="150"><br>` : ""}
+				${data.budget ? `Bütçe: ₺${data.budget}<br>` : ""}
+				${data.no_smoking ? "🚭 Sigara kullanmıyor<br>" : ""}
+				${data.no_pets ? "🐾 Evcil hayvanı yok<br>" : ""}
+				${data.only_female ? "👩 Kadın ev arkadaşı arıyor<br>" : ""}
+				${data.only_male ? "👨 Erkek ev arkadaşı arıyor<br>" : ""}
+				<hr>
+			`;
+			ul.appendChild(li);
+		});
     </script>
 </body>
 </html>

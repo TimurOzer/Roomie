@@ -1,0 +1,96 @@
+<!-- templates/kartlar.html -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ev Arkadaşı Kartları</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h2>Ev Arkadaşı Bul</h2>
+        <div id="card-container">
+            <!-- Kart buraya yüklenecek -->
+        </div>
+    </div>
+
+    <script>
+        let remainingPosts = {{ posts|tojson }};
+        const currentUser = "{{ current_user }}";
+
+        function renderNextCard() {
+            if (remainingPosts.length === 0) {
+                document.getElementById('card-container').innerHTML = "<p>Gösterilecek başka ilan kalmadı.</p>";
+                return;
+            }
+
+            const post = remainingPosts.pop();
+            if (post.user === currentUser) {
+                renderNextCard();  // Kendi ilanını gösterme
+                return;
+            }
+
+            const cardHtml = `
+                <div class="card">
+                    <strong>${post.user}</strong> - ${post.timestamp}<br>
+                    ${post.content}<br>
+                    <em>${post.address}</em><br>
+                    ${post.image ? `<img src="${post.image}" width="200"><br>` : ""}
+                    ${post.budget ? `Bütçe: ₺${post.budget}<br>` : ""}
+                    ${post.no_smoking ? "🚭 Sigara kullanmıyor<br>" : ""}
+                    ${post.no_pets ? "🐾 Evcil hayvanı yok<br>" : ""}
+                    ${post.only_female ? "👩 Kadın ev arkadaşı arıyor<br>" : ""}
+                    ${post.only_male ? "👨 Erkek ev arkadaşı arıyor<br>" : ""}
+                    <div class="actions">
+                        <button onclick="sendAction('cay', '${post.user}')">☕ Çay</button>
+                        <button onclick="sendAction('kahve', '${post.user}')">☕ Kahve</button>
+                        <button onclick="renderNextCard()">❌ Geç</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('card-container').innerHTML = cardHtml;
+        }
+
+        function sendAction(action, owner) {
+            fetch('/secim', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, owner })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderNextCard();
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+
+        renderNextCard();
+    </script>
+
+    <style>
+        .card {
+            border: 2px solid #ddd;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 10px;
+            background-color: #fff9f0;
+            box-shadow: 2px 2px 10px #ccc;
+        }
+        .actions {
+            margin-top: 10px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
+</body>
+</html>

@@ -1,9 +1,14 @@
 [
     {
-        "content": "EV BO\u015e"
-    },
-    {
-        "content": "EVEE GEL",
-        "user": "betul"
+        "user": "betul",
+        "content": "erve",
+        "address": "eveve",
+        "image": "/static/uploads/ChatGPT_Image_4_Nis_2025_18_02_46.png",
+        "timestamp": "05.04.2025 12:14",
+        "no_smoking": true,
+        "no_pets": true,
+        "only_female": false,
+        "only_male": false,
+        "budget": "3999"
     }
 ]

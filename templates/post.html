@@ -8,10 +8,23 @@
 <body>
     <div class="container">
         <h2>Yeni İlan Ver</h2>
-        <form method="POST">
-            <textarea name="content" placeholder="İlan metnini yaz..." required></textarea>
-            <button type="submit">Yayınla</button>
-        </form>
+		<form method="POST" enctype="multipart/form-data">
+			<textarea name="content" placeholder="İlan açıklaması..." required></textarea><br>
+
+			<input type="text" name="address" placeholder="Adres (örn. İstanbul - Kadıköy)" required><br>
+
+			<label>Resim Yükle:</label>
+			<input type="file" name="image"><br>
+
+			<label><input type="checkbox" name="no_smoking"> Sigara kullanmayan</label><br>
+			<label><input type="checkbox" name="no_pets"> Evcil hayvanı olmayan</label><br>
+			<label><input type="checkbox" name="only_female"> Sadece kadın ev arkadaşı</label><br>
+			<label><input type="checkbox" name="only_male"> Sadece erkek ev arkadaşı</label><br>
+			<label>Bütçe (₺):</label>
+			<input type="number" name="budget" min="0"><br>
+
+			<button type="submit">Yayınla</button>
+		</form>
         <a href="{{ url_for('ilanlar') }}">İlanları Gör</a>
     </div>
 </body>
