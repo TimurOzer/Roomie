@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>İlan Ver</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Yeni İlan Ver</h2>
+        <form method="POST">
+            <textarea name="content" placeholder="İlan metnini yaz..." required></textarea>
+            <button type="submit">Yayınla</button>
+        </form>
+        <a href="{{ url_for('ilanlar') }}">İlanları Gör</a>
+    </div>
+</body>
+</html>

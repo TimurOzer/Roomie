@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ev Arkadaşı Platformu</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Ev Arkadaşı Platformuna Hoş Geldin</h1>
+        <a href="{{ url_for('login') }}" class="btn">Giriş Yap</a>
+        <a href="{{ url_for('register') }}" class="btn">Kayıt Ol</a>
+    </div>
+</body>
+</html>

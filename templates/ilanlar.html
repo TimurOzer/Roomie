@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>İlanlar</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>Mevcut İlanlar</h2>
+        <ul id="post-list">
+            {% for post in posts %}
+                <li>{{ post.content }}</li>
+            {% endfor %}
+        </ul>
+        <a href="{{ url_for('post') }}">Yeni İlan Ver</a>
+    </div>
+
+    <script>
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Socket bağlantısı kuruldu!');
+        });
+
+        socket.on('new_post', function(data) {
+            const ul = document.getElementById('post-list');
+            const li = document.createElement('li');
+            li.textContent = data.content;
+            ul.appendChild(li);
+        });
+    </script>
+</body>
+</html>
