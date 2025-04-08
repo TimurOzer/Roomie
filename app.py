@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import json
@@ -22,11 +22,42 @@ PRIVATE_MESSAGES_FILE = "messages.json"
 BILDIRIMLER_FILE = "bildirimler.json"
 MATCHES_FILE = "matches.json"
 
+DATA_DIR = "data"
+os.makedirs(DATA_DIR, exist_ok=True)  # data klasörü yoksa oluştur
+
+USERS_FILE = os.path.join(DATA_DIR, "users.json")
+POSTS_FILE = os.path.join(DATA_DIR, "posts.json")
+PRIVATE_MESSAGES_FILE = os.path.join(DATA_DIR, "mesajlar.json")
+BILDIRIMLER_FILE = os.path.join(DATA_DIR, "bildirimler.json")
+MATCHES_FILE = os.path.join(DATA_DIR, "matches.json")
+# app.py başına (global alana)
+room_messages = {}  # örnek: {"room_timur_betul": [{"from": "timur", "text": "merhaba"}]}
+
+# Bu fonksiyonu en başa koy
+def ensure_json_file(path, default):
+    if not os.path.exists(path):
+        with open(path, "w") as f:
+            json.dump(default, f, indent=4)
+
+# Uygulama başlatılırken bu dosyaları kontrol et ve oluştur
+ensure_json_file(USERS_FILE, {})
+ensure_json_file(POSTS_FILE, [])
+ensure_json_file(PRIVATE_MESSAGES_FILE, {})
+ensure_json_file(BILDIRIMLER_FILE, [])
+ensure_json_file(MATCHES_FILE, [])
+
 def load_messages():
-    if not os.path.exists(PRIVATE_MESSAGES_FILE):
+    try:
+        with open(PRIVATE_MESSAGES_FILE, "r") as f:
+            data = json.load(f)
+            # Convert string timestamps to datetime objects
+            for room in data.values():
+                for message in room:
+                    if isinstance(message['timestamp'], str):
+                        message['timestamp'] = datetime.fromisoformat(message['timestamp'])
+            return data
+    except FileNotFoundError:
         return {}
-    with open(PRIVATE_MESSAGES_FILE, "r") as f:
-        return json.load(f)
 
 def save_messages(data):
     with open(PRIVATE_MESSAGES_FILE, "w") as f:
@@ -160,10 +191,12 @@ def ilanlar():
     
 @app.route('/dashboard')
 def dashboard():
+    username = session["username"]
+    bildirim_sayisi = bildirimleri_getir(username, sadece_yeniler=True)    
     if 'username' not in session:
         flash("Lütfen giriş yapın.", "warning")
         return redirect(url_for('login'))
-    return render_template('dashboard.html', username=session['username'])
+    return render_template("dashboard.html", username=username, bildirim_sayisi=len(bildirim_sayisi))
 
 @app.route('/logout')
 def logout():
@@ -251,6 +284,15 @@ def kabul_et(gonderen):
 
     return redirect(url_for('mesajlasma', kullanici=gonderen))
     
+def bildirimleri_getir(kullanici, sadece_yeniler=False):
+    with open("data/bildirimler.json", "r") as f:
+        bildirimler = json.load(f)
+    if kullanici not in bildirimler:
+        return []
+    if sadece_yeniler:
+        return [b for b in bildirimler[kullanici] if not b.get("okundu", False)]
+    return bildirimler[kullanici]
+    
 @app.route("/mesajlasma/<kullanici>")
 def mesajlasma(kullanici):
     if 'username' not in session:
@@ -263,26 +305,66 @@ def mesajlasma(kullanici):
 
     return render_template("mesajlasma.html", username=ben, diger_kullanici=kullanici, messages=messages)
 
+@app.route('/mesajlasma_yeni/<kullanici_adi>')
+def mesajlasma_yeni(kullanici_adi):  # Changed function name
+    return render_template("mesajlasma.html", alici=kullanici_adi)
+
+@app.context_processor
+def global_degiskenler():
+    username = session.get("username")
+    if username:
+        sayi = len(bildirimleri_getir(username, sadece_yeniler=True))
+    else:
+        sayi = 0
+    return dict(bildirim_sayisi=sayi)
+
 @socketio.on("join_private")
 def handle_join_private(data):
     room = get_room_name(data["from"], data["to"])
     join_room(room)
+# Add this custom filter
 
+@app.template_filter('datetimeformat')
+def datetimeformat_filter(value, format='%d.%m.%Y %H:%M'):
+    # If value is string, parse to datetime object
+    if isinstance(value, str):
+        value = datetime.fromisoformat(value)
+    return value.strftime(format)
+    
 @socketio.on("private_message")
 def handle_private_message(data):
-    room = get_room_name(data["from"], data["to"])
+    # Generate room name from participants
+    sender = data['from']
+    receiver = data['to']
+    room = get_room_name(sender, receiver)  # Use the existing room naming function
+    
+    text = data['text']
+    
+    mesaj = {
+        "from": sender,
+        "to": receiver,
+        "text": text,
+        "timestamp": datetime.now(),  # Store datetime object directly
+        "okundu": False
+    }
 
-    # Mesajı kaydet
+    # Rest of the function remains the same...
+    if room not in room_messages:
+        room_messages[room] = []
+    room_messages[room].append({"from": sender, "text": text})
+
     all_messages = load_messages()
     if room not in all_messages:
         all_messages[room] = []
-    all_messages[room].append({
-        "from": data["from"],
-        "text": data["text"]
-    })
-    save_messages(all_messages)
+    all_messages[room].append(mesaj)
 
-    emit("private_message", data, room=room)
+    # Mark as read if in same room
+    for msg in all_messages[room]:
+        if msg["to"] == receiver and not msg["okundu"]:
+            msg["okundu"] = True
+
+    save_messages(all_messages)
+    emit('private_message', {'from': sender, 'text': text}, room=room)
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
