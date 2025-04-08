@@ -54,14 +54,9 @@
     <script>
         // Socket.io bağlantı konfigürasyonu
 		const socket = io({
-			reconnection: true,
 			transports: ['websocket'],
 			auth: {
 				token: "{{ session['username'] }}"
-			},
-			query: {
-				from: "{{ username|lower }}",
-				to: "{{ diger_kullanici|lower }}"
 			}
 		});
 
@@ -145,18 +140,17 @@
             });
         }
 
-		// Odaya katılma fonksiyonunu güncelleyin
+		// mesajlasma.html içindeki joinChatRoom fonksiyonunu şu şekilde düzeltin:
 		function joinChatRoom() {
 			socket.emit('join_private', {
-				from: "{{ username }}",
-				to: "{{ diger_kullanici }}",
-				auth: {
-					token: "{{ session['username'] }}"
-				},
+				from: username,
+				to: digerKullanici
 			}, (response) => {
 				if(response?.error) {
 					alert('Hata: ' + response.error);
 					window.location.href = '/dashboard';
+				} else {
+					console.log('Odaya katıldı:', response.room);
 				}
 			});
 		}

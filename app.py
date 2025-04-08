@@ -63,13 +63,7 @@ def hash_filter(s):
 def load_messages():
     try:
         with open(PRIVATE_MESSAGES_FILE, "r") as f:
-            data = json.load(f)
-            # Tarih dönüşümü için güncelleme
-            for room in data.values():
-                for msg in room:
-                    if isinstance(msg['timestamp'], str):
-                        msg['timestamp'] = datetime.fromisoformat(msg['timestamp'])
-            return data
+            return json.load(f)  # Tarih dönüşümü yapma
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
@@ -429,6 +423,7 @@ def datetimeformat_filter(value, format='%d.%m.%Y %H:%M'):
     return value.strftime(format)
     
 # app.py içinde handle_private_message fonksiyonunu güncelleyin
+# app.py içinde handle_private_message fonksiyonunu şu şekilde güncelleyin:
 @socketio.on("private_message")
 def handle_private_message(data):
     try:
@@ -443,8 +438,8 @@ def handle_private_message(data):
         new_message = {
             "from": data['from'],
             "to": data['to'],
-            "text": data['text'][:500],  # Mesaj uzunluğunu sınırla
-            "timestamp": datetime.now().isoformat(),
+            "text": data['text'][:500],
+            "timestamp": datetime.now().isoformat(),  # Zaten string olarak kaydediliyor
             "okundu": False
         }
         
@@ -453,8 +448,9 @@ def handle_private_message(data):
         all_messages.setdefault(room, []).append(new_message)
         save_messages(all_messages)
         
-        # Yayın yap
-        emit('private_message', new_message, room=room)
+        # Yayın yapmadan önce datetime'ı string'e çevir
+        emit_message = new_message.copy()
+        emit('private_message', emit_message, room=room)  # Doğrudan new_message yerine
         
     except Exception as e:
         print(f"Mesaj gönderim hatası: {str(e)}")

@@ -1,14 +1,14 @@
 [
     {
-        "user": "betul",
-        "content": "dfsdf",
-        "address": "sdfsd",
-        "image": "/static/uploads/ChatGPT_Image_8_Nis_2025_11_26_46.png",
-        "timestamp": "08.04.2025 20:36",
+        "user": "timur",
+        "content": "sdfsd",
+        "address": "fdsfsd",
+        "image": "/static/uploads/ChatGPT_Image_7_Nis_2025_23_50_06.png",
+        "timestamp": "08.04.2025 20:45",
         "no_smoking": false,
         "no_pets": false,
-        "only_female": true,
-        "only_male": false,
-        "budget": "1222"
+        "only_female": false,
+        "only_male": true,
+        "budget": "2111"
     }
 ]
