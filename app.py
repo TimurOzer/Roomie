@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from datetime import datetime
 from werkzeug.utils import secure_filename
+from json import JSONEncoder
 import json
 import os
 import random
@@ -33,6 +34,14 @@ MATCHES_FILE = os.path.join(DATA_DIR, "matches.json")
 # app.py başına (global alana)
 room_messages = {}  # örnek: {"room_timur_betul": [{"from": "timur", "text": "merhaba"}]}
 
+class CustomJSONEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
+app.json_encoder = CustomJSONEncoder
+
 # Bu fonksiyonu en başa koy
 def ensure_json_file(path, default):
     if not os.path.exists(path):
@@ -50,13 +59,13 @@ def load_messages():
     try:
         with open(PRIVATE_MESSAGES_FILE, "r") as f:
             data = json.load(f)
-            # Convert string timestamps to datetime objects
+            # Tarih dönüşümü için güncelleme
             for room in data.values():
-                for message in room:
-                    if isinstance(message['timestamp'], str):
-                        message['timestamp'] = datetime.fromisoformat(message['timestamp'])
+                for msg in room:
+                    if isinstance(msg['timestamp'], str):
+                        msg['timestamp'] = datetime.fromisoformat(msg['timestamp'])
             return data
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
 def save_messages(data):
@@ -64,7 +73,16 @@ def save_messages(data):
         json.dump(data, f, indent=4)
 
 def get_room_name(user1, user2):
-    return "_".join(sorted([user1, user2]))
+    import unicodedata
+    def normalize(name):
+        # Türkçe karakterler için ek dönüşümler
+        name = unicodedata.normalize('NFKD', name.lower())
+        name = name.encode('ascii', 'ignore').decode('utf-8')
+        # Özel karakterleri temizle
+        return ''.join(c for c in name if c.isalnum())
+    
+    sorted_names = sorted([normalize(str(user1)), normalize(str(user2))])
+    return "room_" + "_".join(sorted_names)
 
 def load_bildirimler():
     if not os.path.exists(BILDIRIMLER_FILE):
@@ -299,11 +317,32 @@ def mesajlasma(kullanici):
         return redirect(url_for('login'))
 
     ben = session['username']
-    room = get_room_name(ben, kullanici)
-    all_messages = load_messages()
-    messages = all_messages.get(room, [])
+    matches = load_matches()
+    # Normalize edilmiş eşleşme kontrolü
+    def normalize(name):
+        return name.strip().lower().replace("ı","i").replace("ğ","g")
 
-    return render_template("mesajlasma.html", username=ben, diger_kullanici=kullanici, messages=messages)
+    normalized_ben = normalize(ben)
+    normalized_kullanici = normalize(kullanici)
+    
+    match_found = any(
+        {normalize(p[0]), normalize(p[1])} == {normalized_ben, normalized_kullanici}
+        for p in matches
+    )
+    
+    if not match_found:
+        flash("Bu kullanıcıyla mesajlaşma izniniz yok", "danger")
+        return redirect(url_for('dashboard'))  
+        
+    # Mesajları yükle
+    room = get_room_name(ben, kullanici)  # Oda adını al
+    all_messages = load_messages()        # Tüm mesajları yükle
+    messages = all_messages.get(room, []) # İlgili odaya ait mesajları filtrele
+
+    return render_template("mesajlasma.html", 
+                         username=ben, 
+                         diger_kullanici=kullanici, 
+                         messages=messages)  # messages artık tanımlı
 
 @app.route('/mesajlasma_yeni/<kullanici_adi>')
 def mesajlasma_yeni(kullanici_adi):  # Changed function name
@@ -318,54 +357,68 @@ def global_degiskenler():
         sayi = 0
     return dict(bildirim_sayisi=sayi)
 
+# app.py'de join_private handler'ını güncelleyin
 @socketio.on("join_private")
 def handle_join_private(data):
-    room = get_room_name(data["from"], data["to"])
-    join_room(room)
-# Add this custom filter
+    try:
+        current_user = session.get('username')
+        if not current_user or current_user != data['from']:
+            emit('join_error', {'message': 'Yetkisiz erişim'})
+            return
+
+        room = get_room_name(data['from'], data['to'])
+        join_room(room)
+        print(f"DEBUG: {data['from']} gerçek odaya katıldı: {room}")
+        
+        # Mevcut mesajları gönder
+        all_messages = load_messages()
+        if room in all_messages:
+            emit('load_old_messages', all_messages[room], room=request.sid)
+            
+        emit('join_success', {'room': room})
+        
+    except Exception as e:
+        print(f"Hata: {str(e)}")
+        emit('join_error', {'message': str(e)})
 
 @app.template_filter('datetimeformat')
 def datetimeformat_filter(value, format='%d.%m.%Y %H:%M'):
-    # If value is string, parse to datetime object
     if isinstance(value, str):
         value = datetime.fromisoformat(value)
     return value.strftime(format)
     
+# app.py içinde handle_private_message fonksiyonunu güncelleyin
 @socketio.on("private_message")
 def handle_private_message(data):
-    # Generate room name from participants
-    sender = data['from']
-    receiver = data['to']
-    room = get_room_name(sender, receiver)  # Use the existing room naming function
-    
-    text = data['text']
-    
-    mesaj = {
-        "from": sender,
-        "to": receiver,
-        "text": text,
-        "timestamp": datetime.now(),  # Store datetime object directly
-        "okundu": False
-    }
-
-    # Rest of the function remains the same...
-    if room not in room_messages:
-        room_messages[room] = []
-    room_messages[room].append({"from": sender, "text": text})
-
-    all_messages = load_messages()
-    if room not in all_messages:
-        all_messages[room] = []
-    all_messages[room].append(mesaj)
-
-    # Mark as read if in same room
-    for msg in all_messages[room]:
-        if msg["to"] == receiver and not msg["okundu"]:
-            msg["okundu"] = True
-
-    save_messages(all_messages)
-    emit('private_message', {'from': sender, 'text': text}, room=room)
-
+    try:
+        current_user = session.get('username')
+        if current_user != data['from']:
+            raise ValueError("Kimlik doğrulama hatası")
+            
+        room = get_room_name(data['from'], data['to'])
+        if not room.startswith("room_"):
+            raise ValueError("Geçersiz oda adı")
+            
+        new_message = {
+            "from": data['from'],
+            "to": data['to'],
+            "text": data['text'][:500],  # Mesaj uzunluğunu sınırla
+            "timestamp": datetime.now().isoformat(),
+            "okundu": False
+        }
+        
+        # Mesajı kaydet
+        all_messages = load_messages()
+        all_messages.setdefault(room, []).append(new_message)
+        save_messages(all_messages)
+        
+        # Yayın yap
+        emit('private_message', new_message, room=room)
+        
+    except Exception as e:
+        print(f"Mesaj gönderim hatası: {str(e)}")
+        emit('message_error', {'message': str(e)})
+        
 if __name__ == '__main__':
     socketio.run(app, debug=True)
 

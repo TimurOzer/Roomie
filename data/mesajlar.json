@@ -1,7 +1,11 @@
 {
-    "betul_timur": [
+    "room_betul_timur": [
         {
             "from": "betul",
             "to": "timur",
-            "text": "selam",
-            "timestamp": 
+            "text": "selam bebis",
+            "timestamp": "2025-04-08T20:06:46.815306",
+            "okundu": false
+        }
+    ]
+}
