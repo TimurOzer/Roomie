@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2>Mesajlaşabileceğiniz Kişiler</h2>
+    <ul>
+        {% for kullanici in eslesmeler %}
+            <li>
+                <a href="{{ url_for('mesajlasma', kullanici=kullanici) }}">
+                    {{ kullanici }} ile mesajlaş
+                </a>
+            </li>
+        {% else %}
+            <li>Henüz eşleşme bulunmamaktadır.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

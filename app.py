@@ -328,47 +328,32 @@ def mesajlasma(kullanici):
     ben = session['username']
     matches = load_matches()
 
-    # Gelişmiş Türkçe normalizasyon fonksiyonu
-    def normalize_turkish(text):
-        text = text.strip().lower()
-        text = unicodedata.normalize('NFKD', text)  # Decompose characters
-        replacements = {
-            'ı': 'i', 
-            'ğ': 'g', 
-            'ü': 'u', 
-            'ş': 's', 
-            'ö': 'o', 
-            'ç': 'c',
-            ' ': '_', 
-            "'": '', 
-            '"': '',
-        }
-        text = text.translate(str.maketrans(replacements))
-        text = text.encode('ascii', 'ignore').decode('ascii')  # Remove non-ASCII
-        return text.replace('_', '')  # Remove any remaining underscores
-    # Normalize kullanıcı adları
-    n_ben = normalize_turkish(ben)
-    n_kullanici = normalize_turkish(kullanici)
-    
+    # Normalizasyon fonksiyonu
+    def normalize(name):
+        name = unicodedata.normalize('NFKD', name.lower().strip())
+        name = name.encode('ascii', 'ignore').decode('ascii')
+        return name.replace(' ', '')
+
     # Eşleşme kontrolü
     match_found = any(
-        {normalize_turkish(p[0]), normalize_turkish(p[1])} == {n_ben, n_kullanici}
+        {normalize(ben), normalize(kullanici)} == 
+        {normalize(p[0]), normalize(p[1])}
         for p in matches
     )
-    
+
     if not match_found:
         flash("Bu kullanıcıyla mesajlaşma izniniz yok", "danger")
         return redirect(url_for('dashboard'))
-        
-    # Mesajları yükle
-    room = get_room_name(ben, kullanici)  # Oda adını al
-    all_messages = load_messages()        # Tüm mesajları yükle
-    messages = all_messages.get(room, []) # İlgili odaya ait mesajları filtrele
 
-    return render_template("mesajlasma.html", 
-                         username=ben, 
-                         diger_kullanici=kullanici, 
-                         messages=messages)  # messages artık tanımlı
+    # Mesajları yükle
+    room = get_room_name(ben, kullanici)
+    all_messages = load_messages()
+    messages = all_messages.get(room, [])
+
+    return render_template("mesajlasma.html",
+                         username=ben,
+                         diger_kullanici=kullanici,
+                         messages=messages)
 
 @app.route('/mesajlasma_yeni/<kullanici_adi>')
 def mesajlasma_yeni(kullanici_adi):  # Changed function name
@@ -390,32 +375,42 @@ def handle_join_private(data):
         current_user = session.get('username')
         if not current_user:
             raise ValueError("Oturum açılmamış")
-        # Client tarafından gönderilen kullanıcı adlarını kontrol et
+
+        # İzin kontrolü
         if current_user not in [data['from'], data['to']]:
-            raise ValueError("Yetkisiz erişim")            
-        # Normalizasyonu uygula
-        def normalize_room(name):
-            return name.lower().translate(str.maketrans('ığüşöç', 'igusoc'))
-            
-        room = "room_" + "_".join(sorted([
-            normalize_room(data['from']),
-            normalize_room(data['to'])
-        ]))
-        
+            raise ValueError("Yetkisiz erişim")
+
+        room = get_room_name(data['from'], data['to'])
         join_room(room)
-        print(f"DEBUG: Kullanıcı {current_user} odaya katıldı: {room}")
-        
-        # Mevcut mesajları gönder
+        print(f"Kullanıcı {current_user} odaya katıldı: {room}")
+
+        # Önceki mesajları gönder
         all_messages = load_messages()
         if room in all_messages:
             emit('load_old_messages', all_messages[room], room=request.sid)
-            
+
         return {'status': 'ok', 'room': room}
-        
+
     except Exception as e:
         print(f"Hata: {str(e)}")
         return {'status': 'error', 'message': str(e)}
-
+        
+@app.route('/eslesmeler')
+def eslesmeler():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    username = session['username']
+    matches = load_matches()
+    eslesme_listesi = []
+    
+    for pair in matches:
+        if username == pair[0]:
+            eslesme_listesi.append(pair[1])
+        elif username == pair[1]:
+            eslesme_listesi.append(pair[0])
+    
+    return render_template('eslesmeler.html', eslesmeler=eslesme_listesi)
 @app.template_filter('datetimeformat')
 def datetimeformat_filter(value, format='%d.%m.%Y %H:%M'):
     if isinstance(value, str):
@@ -457,5 +452,11 @@ def handle_private_message(data):
         emit('message_error', {'message': str(e)})
         
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(
+        app,
+        host='0.0.0.0',  # Tüm IP'lere aç
+        port=5000,       # İstediğiniz portu belirtin (ör: 8080, 80)
+        debug=False,     # Üretimde debug=False yapın
+        allow_unsafe_werkzeug=True  # Geliştirme için gerekli
+    )
 
