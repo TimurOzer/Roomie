@@ -53,14 +53,17 @@
 
     <script>
         // Socket.io bağlantı konfigürasyonu
-        const socket = io({
-            reconnection: true,
-            transports: ['websocket'],
-            query: {
-                from: "{{ username }}",
-                to: "{{ diger_kullanici }}"
-            }
-        });
+		const socket = io({
+			reconnection: true,
+			transports: ['websocket'],
+			auth: {
+				token: "{{ session['username'] }}"
+			},
+			query: {
+				from: "{{ username|lower }}",
+				to: "{{ diger_kullanici|lower }}"
+			}
+		});
 
         // Değişkenler
         const username = "{{ username }}";
@@ -142,17 +145,21 @@
             });
         }
 
-        // Odaya katılma fonksiyonu
-        function joinChatRoom() {
-            socket.emit('join_private', {
-                from: username,
-                to: digerKullanici
-            }, (response) => {
-                if(response?.error) {
-                    alert('Odaya katılamadı: ' + response.error);
-                }
-            });
-        }
+		// Odaya katılma fonksiyonunu güncelleyin
+		function joinChatRoom() {
+			socket.emit('join_private', {
+				from: "{{ username }}",
+				to: "{{ diger_kullanici }}",
+				auth: {
+					token: "{{ session['username'] }}"
+				},
+			}, (response) => {
+				if(response?.error) {
+					alert('Hata: ' + response.error);
+					window.location.href = '/dashboard';
+				}
+			});
+		}
 
         // Mesaj ekleme fonksiyonu
         function addMessageToUI(message) {

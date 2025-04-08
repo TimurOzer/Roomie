@@ -6,6 +6,8 @@ from json import JSONEncoder
 import json
 import os
 import random
+import hashlib
+import unicodedata
 
 app = Flask(__name__)
 app.secret_key = "gizli-anahtar"
@@ -55,6 +57,9 @@ ensure_json_file(PRIVATE_MESSAGES_FILE, {})
 ensure_json_file(BILDIRIMLER_FILE, [])
 ensure_json_file(MATCHES_FILE, [])
 
+@app.template_filter('hash')
+def hash_filter(s):
+    return hashlib.sha256(s.encode()).hexdigest()[:10]
 def load_messages():
     try:
         with open(PRIVATE_MESSAGES_FILE, "r") as f:
@@ -73,16 +78,15 @@ def save_messages(data):
         json.dump(data, f, indent=4)
 
 def get_room_name(user1, user2):
-    import unicodedata
     def normalize(name):
-        # Türkçe karakterler için ek dönüşümler
-        name = unicodedata.normalize('NFKD', name.lower())
-        name = name.encode('ascii', 'ignore').decode('utf-8')
-        # Özel karakterleri temizle
-        return ''.join(c for c in name if c.isalnum())
+        name = name.lower().strip()
+        # Unicode decompose ve Türkçe karakter düzeltme
+        name = unicodedata.normalize('NFKD', name)
+        name = name.encode('ascii', 'ignore').decode('ascii')
+        return name.replace(' ', '')
     
-    sorted_names = sorted([normalize(str(user1)), normalize(str(user2))])
-    return "room_" + "_".join(sorted_names)
+    users = sorted([normalize(user1), normalize(user2)])
+    return f"room_{users[0]}_{users[1]}"
 
 def load_bildirimler():
     if not os.path.exists(BILDIRIMLER_FILE):
@@ -288,10 +292,21 @@ def save_matches(matches):
 @app.route('/kabul_et/<gonderen>', methods=["POST"])
 def kabul_et(gonderen):
     ev_sahibi = session['username']
+    
+    # Eşleşmeleri normalize ederek kontrol et
+    def normalize(name):
+        name = name.lower().replace(' ', '')
+        for tr, en in {'ı':'i','ğ':'g','ü':'u','ş':'s','ö':'o','ç':'c'}.items():
+            name = name.replace(tr, en)
+        return name
+    
     matches = load_matches()
-
-    # Zaten eşleşmişlerse ekleme
-    if not any(m for m in matches if set(m) == set([gonderen, ev_sahibi])):
+    normalized_matches = [
+        {normalize(p[0]), normalize(p[1])} 
+        for p in matches
+    ]
+    
+    if {normalize(gonderen), normalize(ev_sahibi)} not in normalized_matches:
         matches.append([gonderen, ev_sahibi])
         save_matches(matches)
 
@@ -318,21 +333,38 @@ def mesajlasma(kullanici):
 
     ben = session['username']
     matches = load_matches()
-    # Normalize edilmiş eşleşme kontrolü
-    def normalize(name):
-        return name.strip().lower().replace("ı","i").replace("ğ","g")
 
-    normalized_ben = normalize(ben)
-    normalized_kullanici = normalize(kullanici)
+    # Gelişmiş Türkçe normalizasyon fonksiyonu
+    def normalize_turkish(text):
+        text = text.strip().lower()
+        text = unicodedata.normalize('NFKD', text)  # Decompose characters
+        replacements = {
+            'ı': 'i', 
+            'ğ': 'g', 
+            'ü': 'u', 
+            'ş': 's', 
+            'ö': 'o', 
+            'ç': 'c',
+            ' ': '_', 
+            "'": '', 
+            '"': '',
+        }
+        text = text.translate(str.maketrans(replacements))
+        text = text.encode('ascii', 'ignore').decode('ascii')  # Remove non-ASCII
+        return text.replace('_', '')  # Remove any remaining underscores
+    # Normalize kullanıcı adları
+    n_ben = normalize_turkish(ben)
+    n_kullanici = normalize_turkish(kullanici)
     
+    # Eşleşme kontrolü
     match_found = any(
-        {normalize(p[0]), normalize(p[1])} == {normalized_ben, normalized_kullanici}
+        {normalize_turkish(p[0]), normalize_turkish(p[1])} == {n_ben, n_kullanici}
         for p in matches
     )
     
     if not match_found:
         flash("Bu kullanıcıyla mesajlaşma izniniz yok", "danger")
-        return redirect(url_for('dashboard'))  
+        return redirect(url_for('dashboard'))
         
     # Mesajları yükle
     room = get_room_name(ben, kullanici)  # Oda adını al
@@ -362,24 +394,33 @@ def global_degiskenler():
 def handle_join_private(data):
     try:
         current_user = session.get('username')
-        if not current_user or current_user != data['from']:
-            emit('join_error', {'message': 'Yetkisiz erişim'})
-            return
-
-        room = get_room_name(data['from'], data['to'])
+        if not current_user:
+            raise ValueError("Oturum açılmamış")
+        # Client tarafından gönderilen kullanıcı adlarını kontrol et
+        if current_user not in [data['from'], data['to']]:
+            raise ValueError("Yetkisiz erişim")            
+        # Normalizasyonu uygula
+        def normalize_room(name):
+            return name.lower().translate(str.maketrans('ığüşöç', 'igusoc'))
+            
+        room = "room_" + "_".join(sorted([
+            normalize_room(data['from']),
+            normalize_room(data['to'])
+        ]))
+        
         join_room(room)
-        print(f"DEBUG: {data['from']} gerçek odaya katıldı: {room}")
+        print(f"DEBUG: Kullanıcı {current_user} odaya katıldı: {room}")
         
         # Mevcut mesajları gönder
         all_messages = load_messages()
         if room in all_messages:
             emit('load_old_messages', all_messages[room], room=request.sid)
             
-        emit('join_success', {'room': room})
+        return {'status': 'ok', 'room': room}
         
     except Exception as e:
         print(f"Hata: {str(e)}")
-        emit('join_error', {'message': str(e)})
+        return {'status': 'error', 'message': str(e)}
 
 @app.template_filter('datetimeformat')
 def datetimeformat_filter(value, format='%d.%m.%Y %H:%M'):
