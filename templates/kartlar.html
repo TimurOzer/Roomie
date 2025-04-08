@@ -19,9 +19,32 @@
     </div>
 
     <script>
+		const socket = io();
         let remainingPosts = {{ posts|tojson }};
         const currentUser = "{{ current_user }}";
-
+		function secimGonder(tip) {
+			fetch('/secim', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					secim: tip,
+					ev_sahibi: "{{ post.user }}"
+				})
+			})
+			.then(res => res.json())
+			.then(data => {
+				if (data.hata) {
+					alert(data.hata);
+				} else {
+					window.location.reload();  // yeni ilan getir
+				}
+			});
+		}
+		socket.on('bildirim', function(data) {
+			if (data.hedef === "{{ session['username'] }}") {
+				alert(`${data.gonderen} sana ${data.tip === "cay" ? "☕ çay" : "☕☕ kahve"} gönderdi!`);
+			}
+		});		
         function renderNextCard() {
             if (remainingPosts.length === 0) {
                 document.getElementById('card-container').innerHTML = "<p>Gösterilecek başka ilan kalmadı.</p>";
@@ -55,22 +78,21 @@
             document.getElementById('card-container').innerHTML = cardHtml;
         }
 
-        function sendAction(action, owner) {
-            fetch('/secim', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action, owner })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    renderNextCard();
-                } else {
-                    alert(data.message);
-                }
-            });
-        }
-
+		function sendAction(tip, ev_sahibi) {
+			fetch('/secim', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ secim: tip, ev_sahibi: ev_sahibi })
+			})
+			.then(res => res.json())
+			.then(data => {
+				if (data.hata) {
+					alert(data.hata);
+				} else {
+					renderNextCard();  // yeni kart getir
+				}
+			});
+		}
         renderNextCard();
     </script>
 

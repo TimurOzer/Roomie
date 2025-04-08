@@ -4,6 +4,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 import json
 import os
+import random
 
 app = Flask(__name__)
 app.secret_key = "gizli-anahtar"
@@ -16,6 +17,39 @@ UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+PRIVATE_MESSAGES_FILE = "messages.json"
+
+BILDIRIMLER_FILE = "bildirimler.json"
+MATCHES_FILE = "matches.json"
+
+def load_messages():
+    if not os.path.exists(PRIVATE_MESSAGES_FILE):
+        return {}
+    with open(PRIVATE_MESSAGES_FILE, "r") as f:
+        return json.load(f)
+
+def save_messages(data):
+    with open(PRIVATE_MESSAGES_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+def get_room_name(user1, user2):
+    return "_".join(sorted([user1, user2]))
+
+def load_bildirimler():
+    if not os.path.exists(BILDIRIMLER_FILE):
+        return []
+    with open(BILDIRIMLER_FILE, "r") as f:
+        return json.load(f)
+
+def save_bildirimler(data):
+    with open(BILDIRIMLER_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+def add_bildirim(gonderen, hedef, tip):
+    bildirimler = load_bildirimler()
+    bildirimler.append({"gonderen": gonderen, "hedef": hedef, "tip": tip})
+    save_bildirimler(bildirimler)
+    
 def load_users():
     if not os.path.exists(USERS_FILE):
         return {}
@@ -42,6 +76,7 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    session['gunluk_limitler'] = {"cay": 5, "kahve": 1}
     if request.method == 'POST':
         users = load_users()
         username = request.form['username']
@@ -135,30 +170,120 @@ def logout():
     session.pop('username', None)
     flash("Çıkış yaptınız.", "success")
     return redirect(url_for('login'))
-
+    
 @app.route('/kartlar')
 def kartlar():
     if 'username' not in session:
         return redirect(url_for('login'))
     
     posts = load_posts()
-    random.shuffle(posts)  # Rastgele sırala
-    return render_template("kartlar.html", posts=posts, current_user=session['username'])
+    if not posts:
+        return render_template('kartlar.html', post=None)
+
+    post = random.choice(posts)
+    return render_template('kartlar.html', post=post)
+
 
 @app.route('/secim', methods=['POST'])
 def secim():
     if 'username' not in session:
-        return {"success": False, "message": "Giriş yapmanız gerekiyor."}, 401
-    
+        return "Oturum yok", 403
+
     data = request.get_json()
-    action = data.get("action")
-    owner = data.get("owner")
+    secen = session['username']
+    secim_tipi = data.get('secim')  # "cay", "kahve", "carpi"
+    ev_sahibi = data.get('ev_sahibi')
 
-    # Buraya günlük limit ve eşleşme kontrolü eklenecek
-    print(f"{session['username']} -> {action.upper()} -> {owner}")
+    # Günlük limit kontrolü (sonraki adımda detaylandıracağız)
+    limitler = session.get("gunluk_limitler", {"cay": 5, "kahve": 1})
+    if secim_tipi == "cay" and limitler["cay"] <= 0:
+        return {"hata": "Günlük çay limitin doldu."}, 400
+    if secim_tipi == "kahve" and limitler["kahve"] <= 0:
+        return {"hata": "Günlük kahve limitin doldu."}, 400
 
-    return {"success": True}
-        
+    if secim_tipi in ["cay", "kahve"]:
+        add_bildirim(secen, ev_sahibi, secim_tipi)
+        socketio.emit('bildirim', {
+            "hedef": ev_sahibi,
+            "gonderen": secen,
+            "tip": secim_tipi
+        }, broadcast=True)
+
+        # Limiti azalt
+        limitler[secim_tipi] -= 1
+        session["gunluk_limitler"] = limitler
+
+    return {"durum": "başarılı"}
+    
+@app.route('/bildirimler')
+def bildirimler():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    tum_bildirimler = load_bildirimler()
+    benim = [b for b in tum_bildirimler if b['hedef'] == session['username']]
+    return render_template("bildirimler.html", bildirimler=benim)
+
+def load_matches():
+    if not os.path.exists(MATCHES_FILE):
+        return []
+    with open(MATCHES_FILE, "r") as f:
+        return json.load(f)
+
+def save_matches(matches):
+    with open(MATCHES_FILE, "w") as f:
+        json.dump(matches, f, indent=4)
+
+@app.route('/kabul_et/<gonderen>', methods=["POST"])
+def kabul_et(gonderen):
+    ev_sahibi = session['username']
+    matches = load_matches()
+
+    # Zaten eşleşmişlerse ekleme
+    if not any(m for m in matches if set(m) == set([gonderen, ev_sahibi])):
+        matches.append([gonderen, ev_sahibi])
+        save_matches(matches)
+
+    # Bildirimi sil
+    bildirimler = load_bildirimler()
+    bildirimler = [b for b in bildirimler if not (b["gonderen"] == gonderen and b["hedef"] == ev_sahibi)]
+    save_bildirimler(bildirimler)
+
+    return redirect(url_for('mesajlasma', kullanici=gonderen))
+    
+@app.route("/mesajlasma/<kullanici>")
+def mesajlasma(kullanici):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    ben = session['username']
+    room = get_room_name(ben, kullanici)
+    all_messages = load_messages()
+    messages = all_messages.get(room, [])
+
+    return render_template("mesajlasma.html", username=ben, diger_kullanici=kullanici, messages=messages)
+
+@socketio.on("join_private")
+def handle_join_private(data):
+    room = get_room_name(data["from"], data["to"])
+    join_room(room)
+
+@socketio.on("private_message")
+def handle_private_message(data):
+    room = get_room_name(data["from"], data["to"])
+
+    # Mesajı kaydet
+    all_messages = load_messages()
+    if room not in all_messages:
+        all_messages[room] = []
+    all_messages[room].append({
+        "from": data["from"],
+        "text": data["text"]
+    })
+    save_messages(all_messages)
+
+    emit("private_message", data, room=room)
+
 if __name__ == '__main__':
     socketio.run(app, debug=True)
 

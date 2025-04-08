@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mesajlaşma</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>👥 {{ username }} ↔ {{ diger_kullanici }}</h2>
+			<div id="mesajlar" style="height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;">
+				{% for mesaj in messages %}
+					<p><strong>{{ mesaj.from }}:</strong> {{ mesaj.text }}</p>
+				{% endfor %}
+			</div>
+
+			<input type="text" id="mesaj-input" placeholder="Mesaj yaz..." style="width: 80%;">
+			<button onclick="gonderMesaj()">Gönder</button>
+
+        <form id="chat-form">
+            <input type="text" id="message" placeholder="Mesajınızı yazın..." autocomplete="off">
+            <button type="submit">Gönder</button>
+        </form>
+        <a href="{{ url_for('dashboard') }}">⏪ Ana Sayfa</a>
+    </div>
+
+	<script>
+		const socket = io();
+		const username = "{{ username }}";
+		const digerKullanici = "{{ diger_kullanici }}";
+
+		// Odaya katıl
+		socket.emit("join_private", {
+			from: username,
+			to: digerKullanici
+		});
+
+		// Mesaj gönderme
+		function gonderMesaj() {
+			const text = document.getElementById("mesaj-input").value;
+			if (text.trim() === "") return;
+			socket.emit("private_message", {
+				from: username,
+				to: digerKullanici,
+				text: text
+			});
+			document.getElementById("mesaj-input").value = "";
+		}
+
+		// Mesaj alındığında anlık ekle
+		socket.on("private_message", function(data) {
+			const chatBox = document.getElementById("mesajlar");
+			const mesajHTML = `<p><strong>${data.from}:</strong> ${data.text}</p>`;
+			chatBox.innerHTML += mesajHTML;
+			chatBox.scrollTop = chatBox.scrollHeight;
+		});
+	</script>
+
+</body>
+</html>

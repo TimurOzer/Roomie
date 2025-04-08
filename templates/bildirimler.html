@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gelen Bildirimler</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Gelen Çay/Kahve Teklifleri</h2>
+
+        {% if bildirimler %}
+            <ul>
+                {% for b in bildirimler %}
+                    <li>
+                        <strong>{{ b.gonderen }}</strong> size 
+                        {% if b.tip == "cay" %}🍵 Çay{% elif b.tip == "kahve" %}☕ Kahve{% endif %} teklif etti.
+                        <form action="{{ url_for('kabul_et', gonderen=b.gonderen) }}" method="POST" style="display:inline;">
+                            <button type="submit">Kabul Et</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Henüz bir teklifiniz yok.</p>
+        {% endif %}
+
+        <a href="{{ url_for('dashboard') }}">⏪ Ana Sayfa</a>
+    </div>
+</body>
+</html>

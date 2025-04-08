@@ -24,14 +24,18 @@
 					{% if post.only_female %}👩 Kadın ev arkadaşı arıyor<br>{% endif %}
 					{% if post.only_male %}👨 Erkek ev arkadaşı arıyor<br>{% endif %}
 					<hr>
+					<button onclick="secimYap('{{ post.user }}', 'cay')">☕ Çay</button>
+					<button onclick="secimYap('{{ post.user }}', 'kahve')">☕ Kahve</button>
+					<button onclick="secimYap('{{ post.user }}', 'carpi')">❌ Çarpı</button>				
 				</li>
 			{% endfor %}
 		</ul>
         <a href="{{ url_for('post') }}">Yeni İlan Ver</a>
     </div>
 
-    <script>
-		const socket = io(); // Socket bağlantısını başlat
+	<script>
+		const socket = io();
+
 		socket.on('new_post', function(data) {
 			const ul = document.getElementById('post-list');
 			const li = document.createElement('li');
@@ -46,10 +50,36 @@
 				${data.no_pets ? "🐾 Evcil hayvanı yok<br>" : ""}
 				${data.only_female ? "👩 Kadın ev arkadaşı arıyor<br>" : ""}
 				${data.only_male ? "👨 Erkek ev arkadaşı arıyor<br>" : ""}
+				<br>
+				<button onclick="secimYap('${data.user}', 'cay')">☕ Çay</button>
+				<button onclick="secimYap('${data.user}', 'kahve')">☕ Kahve</button>
+				<button onclick="secimYap('${data.user}', 'carpi')">❌ Çarpı</button>
 				<hr>
 			`;
 			ul.appendChild(li);
 		});
-    </script>
+
+		function secimYap(evSahibi, secimTuru) {
+			fetch('/secim', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					ev_sahibi: evSahibi,
+					secim: secimTuru
+				})
+			})
+			.then(res => res.json())
+			.then(data => {
+				if (data.hata) {
+					alert(data.hata);
+				} else {
+					alert("Seçimin gönderildi!");
+				}
+			});
+		}
+	</script>
+
 </body>
 </html>

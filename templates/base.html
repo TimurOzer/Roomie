@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Ev Arkadaşı{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <nav style="background-color:#f9f2e4; padding: 10px; margin-bottom: 20px;">
+        <a href="{{ url_for('dashboard') }}">🏠 Anasayfa</a> |
+        <a href="{{ url_for('ilanlar') }}">📄 İlanlar</a> |
+        <a href="{{ url_for('post') }}">➕ Yeni İlan</a> |
+        <a href="{{ url_for('kartlar') }}">🃏 Kartlar</a> |
+        <a href="{{ url_for('bildirimler') }}">🔔 Bildirimler</a> |
+        <a href="{{ url_for('logout') }}">🚪 Çıkış</a>
+    </nav>
+
+    {% block content %}{% endblock %}
+</body>
+</html>

@@ -1,19 +1,5 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <title>Kontrol Paneli</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h2>Hoş geldin, {{ username }} 👋</h2>
-        <p>Ne yapmak istersin?</p>
-        <ul>
-            <li><a href="{{ url_for('post') }}">Yeni İlan Ver</a></li>
-            <li><a href="{{ url_for('ilanlar') }}">İlanları Gör</a></li>
-            <li><a href="{{ url_for('logout') }}">Çıkış Yap</a></li>
-        </ul>
-    </div>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h2>Hoş geldin {{ username }}</h2>
+{% endblock %}
