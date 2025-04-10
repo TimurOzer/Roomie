@@ -18,83 +18,73 @@
         </div>
     </div>
 
-    <script>
-		const socket = io();
-        let remainingPosts = {{ posts|tojson }};
-        const currentUser = "{{ current_user }}";
-		function secimGonder(tip) {
-			fetch('/secim', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					secim: tip,
-					ev_sahibi: "{{ post.user }}"
-				})
-			})
-			.then(res => res.json())
-			.then(data => {
-				if (data.hata) {
-					alert(data.hata);
-				} else {
-					window.location.reload();  // yeni ilan getir
-				}
-			});
+<script>
+	// Kartlar sayfasında yeni post bildirimi
+	socket.on('new_post', () => {
+		if(document.getElementById('card-container').innerText.includes("kalmadı")) {
+			loadPost(); // Yeni post varsa otomatik yenile
 		}
-		socket.on('bildirim', function(data) {
-			if (data.hedef === "{{ session['username'] }}") {
-				alert(`${data.gonderen} sana ${data.tip === "cay" ? "☕ çay" : "☕☕ kahve"} gönderdi!`);
-			}
-		});		
-        function renderNextCard() {
-            if (remainingPosts.length === 0) {
-                document.getElementById('card-container').innerHTML = "<p>Gösterilecek başka ilan kalmadı.</p>";
-                return;
-            }
+	});
+    let currentPost = null;
 
-            const post = remainingPosts.pop();
-            if (post.user === currentUser) {
-                renderNextCard();  // Kendi ilanını gösterme
-                return;
-            }
+    function loadPost() {
+        fetch('/api/next_post')
+            .then(r => r.json())
+            .then(data => {
+                if(data.message) {
+                    document.getElementById('card-container').innerHTML = `
+                        <div class="card">
+                            <h3>Üzgünüz 🙁</h3>
+                            <p>Gösterilecek başka ilan kalmadı</p>
+                        </div>
+                    `;
+                } else {
+                    currentPost = data;
+                    renderPost(data);
+                }
+            });
+    }
 
-            const cardHtml = `
-                <div class="card">
-                    <strong>${post.user}</strong> - ${post.timestamp}<br>
-                    ${post.content}<br>
-                    <em>${post.address}</em><br>
-                    ${post.image ? `<img src="${post.image}" width="200"><br>` : ""}
-                    ${post.budget ? `Bütçe: ₺${post.budget}<br>` : ""}
-                    ${post.no_smoking ? "🚭 Sigara kullanmıyor<br>" : ""}
-                    ${post.no_pets ? "🐾 Evcil hayvanı yok<br>" : ""}
-                    ${post.only_female ? "👩 Kadın ev arkadaşı arıyor<br>" : ""}
-                    ${post.only_male ? "👨 Erkek ev arkadaşı arıyor<br>" : ""}
-                    <div class="actions">
-                        <button onclick="sendAction('cay', '${post.user}')">☕ Çay</button>
-                        <button onclick="sendAction('kahve', '${post.user}')">☕ Kahve</button>
-                        <button onclick="renderNextCard()">❌ Geç</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('card-container').innerHTML = cardHtml;
-        }
+	function renderPost(post) {
+		const html = `
+			<div class="card">
+				<h3>${post.user}</h3>
+				${post.id ? `<input type="hidden" id="post_id" value="${post.id}">` : ''}				
+				<p>${post.content}</p>
+				<p><em>${post.address}</em></p>
+				${post.image ? `<img src="${post.image}" width="200"><br>` : ''}
+				${post.budget ? `<p>Bütçe: ₺${post.budget}</p>` : ''}
+				<div class="filtreler">
+					${post.no_smoking ? '🚭 Sigara İçmiyor<br>' : ''}
+					${post.no_pets ? '🐾 Evcil Hayvan Yok<br>' : ''}
+					${post.only_female ? '👩 Sadece Kadın<br>' : ''}
+					${post.only_male ? '👨 Sadece Erkek<br>' : ''}
+				</div>
+				<div class="actions">
+					<button onclick="handleAction('carpi')">❌</button>
+					<button onclick="handleAction('cay')">☕ Çay</button>
+					<button onclick="handleAction('kahve')">☕☕ Kahve</button>
+				</div>
+			</div>
+		`;
+		document.getElementById('card-container').innerHTML = html;
+	}
 
-		function sendAction(tip, ev_sahibi) {
-			fetch('/secim', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ secim: tip, ev_sahibi: ev_sahibi })
+	function handleAction(action) {
+		if(!currentPost) return;
+		
+		fetch('/secim', {
+			method: 'POST',
+			headers: {'Content-Type': 'application/json'},
+			body: JSON.stringify({
+				secim: action,
+				post_id: currentPost.id // Post ID'yi ekliyoruz
 			})
-			.then(res => res.json())
-			.then(data => {
-				if (data.hata) {
-					alert(data.hata);
-				} else {
-					renderNextCard();  // yeni kart getir
-				}
-			});
-		}
-        renderNextCard();
-    </script>
+		}).then(() => loadPost());
+	}
+    // Sayfa yüklendiğinde ilk postu al
+    loadPost();
+</script>
 
     <style>
         .card {

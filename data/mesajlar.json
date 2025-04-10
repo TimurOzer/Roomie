@@ -1,1 +1,18 @@
-{}
+{
+    "room_t_z": [
+        {
+            "from": "z",
+            "to": "t",
+            "text": "ds",
+            "timestamp": "2025-04-10T14:45:27.250260",
+            "okundu": false
+        },
+        {
+            "from": "t",
+            "to": "z",
+            "text": "eee",
+            "timestamp": "2025-04-10T14:45:30.398480",
+            "okundu": false
+        }
+    ]
+}

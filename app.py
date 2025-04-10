@@ -1,13 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from json import JSONEncoder
 import json
+import uuid
 import os
 import random
 import hashlib
 import unicodedata
+
+DATA_DIR = "data"
+os.makedirs(DATA_DIR, exist_ok=True)  # data klasörü yoksa oluştur
 
 app = Flask(__name__)
 app.secret_key = "gizli-anahtar"
@@ -25,14 +29,13 @@ PRIVATE_MESSAGES_FILE = "messages.json"
 BILDIRIMLER_FILE = "bildirimler.json"
 MATCHES_FILE = "matches.json"
 
-DATA_DIR = "data"
-os.makedirs(DATA_DIR, exist_ok=True)  # data klasörü yoksa oluştur
-
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 POSTS_FILE = os.path.join(DATA_DIR, "posts.json")
 PRIVATE_MESSAGES_FILE = os.path.join(DATA_DIR, "mesajlar.json")
 BILDIRIMLER_FILE = os.path.join(DATA_DIR, "bildirimler.json")
 MATCHES_FILE = os.path.join(DATA_DIR, "matches.json")
+VIEWED_POSTS_FILE = os.path.join(DATA_DIR, "viewed_posts.json")
+
 # app.py başına (global alana)
 room_messages = {}  # örnek: {"room_timur_betul": [{"from": "timur", "text": "merhaba"}]}
 
@@ -57,6 +60,16 @@ ensure_json_file(PRIVATE_MESSAGES_FILE, {})
 ensure_json_file(BILDIRIMLER_FILE, [])
 ensure_json_file(MATCHES_FILE, [])
 
+def load_viewed_posts():
+    if not os.path.exists(VIEWED_POSTS_FILE):
+        return {}
+    with open(VIEWED_POSTS_FILE, 'r') as f:
+        return json.load(f)
+
+def save_viewed_posts(data):
+    with open(VIEWED_POSTS_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
+        
 @app.template_filter('hash')
 def hash_filter(s):
     return hashlib.sha256(s.encode()).hexdigest()[:10]
@@ -180,6 +193,7 @@ def post():
 
         posts = load_posts()
         new_post = {
+            "id": str(uuid.uuid4()),  # <--- Bu satırı ekle        
             "user": username,
             "content": content,
             "address": address,
@@ -199,7 +213,22 @@ def post():
         return redirect(url_for('ilanlar'))
 
     return render_template('post.html')
-
+    
+@app.route('/api/next_post')
+def api_next_post():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    username = session['username']
+    viewed = load_viewed_posts().get(username, [])
+    posts = [p for p in load_posts() if p['id'] not in viewed]
+    
+    if not posts:
+        return jsonify({"message": "No posts left"})
+    
+    post = random.choice(posts)
+    return jsonify(post)  # Bu satırda jsonify kullanılıyor
+    
 @app.route('/ilanlar')
 def ilanlar():
     posts = load_posts()
@@ -232,7 +261,6 @@ def kartlar():
     post = random.choice(posts)
     return render_template('kartlar.html', post=post)
 
-
 @app.route('/secim', methods=['POST'])
 def secim():
     if 'username' not in session:
@@ -240,24 +268,41 @@ def secim():
 
     data = request.get_json()
     secen = session['username']
-    secim_tipi = data.get('secim')  # "cay", "kahve", "carpi"
-    ev_sahibi = data.get('ev_sahibi')
-
-    # Günlük limit kontrolü (sonraki adımda detaylandıracağız)
+    secim_tipi = data.get('secim')
+    post_id = data.get('post_id')
+    
+    # Post ID varsa ev sahibini bul
+    ev_sahibi = None
+    if post_id:
+        posts = load_posts()
+        post = next((p for p in posts if p['id'] == post_id), None)
+        if not post:
+            return jsonify({"hata": "Post bulunamadı"}), 404
+        ev_sahibi = post['user']
+    else:
+        ev_sahibi = data.get('ev_sahibi')
+    
+    # Görüntülenenlere ekle (sadece post_id varsa)
+    if post_id:
+        viewed = load_viewed_posts()
+        viewed.setdefault(secen, []).append(post_id)
+        save_viewed_posts(viewed)
+    
+    # Limit kontrolleri
     limitler = session.get("gunluk_limitler", {"cay": 5, "kahve": 1})
     if secim_tipi == "cay" and limitler["cay"] <= 0:
         return {"hata": "Günlük çay limitin doldu."}, 400
     if secim_tipi == "kahve" and limitler["kahve"] <= 0:
         return {"hata": "Günlük kahve limitin doldu."}, 400
 
-    if secim_tipi in ["cay", "kahve"]:
+    if secim_tipi in ["cay", "kahve"] and ev_sahibi:
         add_bildirim(secen, ev_sahibi, secim_tipi)
         socketio.emit('bildirim', {
             "hedef": ev_sahibi,
             "gonderen": secen,
             "tip": secim_tipi
         }, broadcast=True)
-
+        
         # Limiti azalt
         limitler[secim_tipi] -= 1
         session["gunluk_limitler"] = limitler
@@ -456,7 +501,7 @@ if __name__ == '__main__':
         app,
         host='0.0.0.0',  # Tüm IP'lere aç
         port=5000,       # İstediğiniz portu belirtin (ör: 8080, 80)
-        debug=False,     # Üretimde debug=False yapın
+        debug=True,     # Üretimde debug=False yapın
         allow_unsafe_werkzeug=True  # Geliştirme için gerekli
     )
 

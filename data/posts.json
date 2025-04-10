@@ -1,1 +1,28 @@
-[]
+[
+    {
+        "id": "a094989e-936c-4759-bf26-3fe7728ca50c",
+        "user": "m",
+        "content": "sdfds",
+        "address": "fsdf",
+        "image": "/static/uploads/ChatGPT_Image_10_Nis_2025_13_41_36.png",
+        "timestamp": "10.04.2025 14:44",
+        "no_smoking": false,
+        "no_pets": false,
+        "only_female": false,
+        "only_male": false,
+        "budget": "2111"
+    },
+    {
+        "id": "770f9135-c30c-4c31-99e5-34a659f54e09",
+        "user": "z",
+        "content": "sdfds",
+        "address": "fsdf",
+        "image": "/static/uploads/ChatGPT_Image_10_Nis_2025_13_38_08.png",
+        "timestamp": "10.04.2025 14:44",
+        "no_smoking": false,
+        "no_pets": false,
+        "only_female": false,
+        "only_male": false,
+        "budget": "122222"
+    }
+]
